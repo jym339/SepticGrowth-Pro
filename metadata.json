@@ -1,0 +1,7 @@
+{
+  "name": "SepticGrowth Pro - Marketing Agency",
+  "description": "A high-converting landing page for a specialized marketing agency serving septic tank and well water companies.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
