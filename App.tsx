@@ -23,12 +23,12 @@ import {
   MessageCircle,
   Headphones,
   CalendarDays,
-  Image as ImageIcon
+  ExternalLink
 } from 'lucide-react';
-import { GoogleGenAI, LiveServerMessage, Modality, Chat } from '@google/genai';
+import { GoogleGenAI, LiveServerMessage, Modality, Chat, GenerateContentResponse } from '@google/genai';
 
-// Global constants
-const BOOKING_URL = "https://calendly.com/booknow12/consulation-septicgrowth";
+// Global constants - Updated to your specific Google Calendar link
+const BOOKING_URL = "https://calendar.google.com/calendar/u/0?cid=amFjcXVlc21hdG9rYTFAZ21haWwuY29t";
 
 // --- Conversational AI Widget Component ---
 
@@ -37,7 +37,7 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
   const [mode, setMode] = useState<'chat' | 'voice'>('chat');
   const [isLive, setIsLive] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
+  const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string, showBooking?: boolean }[]>([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   
@@ -49,27 +49,28 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const systemInstruction = `
-    You are a professional sales assistant for SepticGrowth, a niche marketing agency that works ONLY with septic tank and well water service companies in the United States and Canada.
-    Your main objective is to engage septic & well water business owners, identify fit, explain the system simply, and book a discovery call.
+    You are a high-performance sales assistant for SepticGrowth. 
+    Your ONLY goal is to get septic and well water business owners to book a 10-minute discovery call on the owner's calendar.
 
-    TARGET AUDIENCE: Septic pumping, installation, well water services. Busy owners on job sites.
-    CORE POSITIONING: SepticGrowth helps these companies get more calls, more 5-star reviews, and never miss a lead using automated systems.
+    CALENDAR LINK: ${BOOKING_URL}
+
+    STRATEGY:
+    1. Acknowledge they are busy field pros. 
+    2. Explain that we help them never miss a lead while they are in a tank or on a job site.
+    3. As soon as they show interest or after 2-3 messages, TELL THEM to click the booking link or that you can help them schedule right now.
+    4. If they ask how to book, provide the link clearly.
     
-    BOOKING LINK: When the user is ready to book, or after 4-6 messages, provide this exact link: ${BOOKING_URL}
+    TONE: Professional, blue-collar friendly, urgent but helpful.
+    LANGUAGE: Respond in ${lang === 'en' ? 'English' : 'French'}.
     
-    STYLE: Professional, respectful, blue-collar friendly. No hype. Speak clearly as if on a phone call.
-    
-    CONVERSATION FLOW:
-    1. GREET: Ask if they run a septic or well company.
-    2. QUALIFY: Ask about their city and current review count.
-    3. OFFER DEMO: Book a 10-minute demo call using the link provided.
-    
-    Response Language: Respond entirely in ${lang === 'en' ? 'English' : 'French'}.
+    IMPORTANT: When you suggest booking, use the phrase "BOOK_NOW_LINK" in your text so I can show them a button.
   `;
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isTyping]);
+    if (isOpen) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isTyping, isOpen]);
 
   const handleSendMessage = async () => {
     if (!inputText.trim() || isTyping) return;
@@ -87,14 +88,20 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
         });
       }
       
-      const response = await chatRef.current.sendMessage({ message: userMsg });
-      const text = response.text;
-      if (text) {
-        setMessages(prev => [...prev, { role: 'ai', text }]);
-      }
+      const response: GenerateContentResponse = await chatRef.current.sendMessage({ message: userMsg });
+      const text = response.text || "";
+      
+      const hasBooking = text.includes("BOOK_NOW_LINK");
+      const cleanedText = text.replace("BOOK_NOW_LINK", "").trim();
+
+      setMessages(prev => [...prev, { 
+        role: 'ai', 
+        text: cleanedText || (lang === 'en' ? "Let's get you scheduled on the calendar!" : "Planifions cela sur le calendrier !"), 
+        showBooking: hasBooking 
+      }]);
     } catch (err) {
       console.error("Chat Error:", err);
-      setMessages(prev => [...prev, { role: 'ai', text: lang === 'en' ? 'Sorry, I encountered an error. Please try again.' : 'Désolé, j\'ai rencontré une erreur. Veuillez réessayer.' }]);
+      setMessages(prev => [...prev, { role: 'ai', text: lang === 'en' ? 'Sorry, I encountered an error.' : 'Désolé, une erreur est survenue.' }]);
     } finally {
       setIsTyping(false);
     }
@@ -159,17 +166,21 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
     setMode('voice');
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-      const outputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-      audioContextRef.current = outputCtx;
+      const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+      const inputCtx = new AudioContextClass({ sampleRate: 16000 });
+      const outputCtx = new AudioContextClass({ sampleRate: 24000 });
+      
+      if (outputCtx.state === 'suspended') await outputCtx.resume();
+      if (inputCtx.state === 'suspended') await inputCtx.resume();
 
+      audioContextRef.current = outputCtx;
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
       const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-12-2025',
         config: {
           responseModalities: [Modality.AUDIO],
-          systemInstruction,
+          systemInstruction: systemInstruction + " In voice mode, tell the user they can see the booking link on their screen right now.",
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } }
           },
@@ -222,181 +233,205 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
     } catch (err) {
       console.error("Connection Error:", err);
       stopLive();
+      alert(lang === 'en' ? "Microphone access is required for the AI Voice Agent." : "L'accès au micro est requis.");
     }
   };
 
   return (
-    <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end gap-4 pointer-events-none">
-      {isOpen && (
-        <div className="w-[400px] h-[600px] bg-white rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-slate-200 overflow-hidden flex flex-col mb-4 animate-in slide-in-from-bottom-8 duration-500 ease-out pointer-events-auto">
-          {/* Header */}
-          <div className="bg-navy p-6 text-white flex justify-between items-center shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-10 h-10 bg-field-green rounded-full flex items-center justify-center">
+    <>
+      <div className={`fixed inset-0 z-[100] bg-black/60 lg:hidden transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsOpen(false)} />
+      
+      <div className={`fixed bottom-4 right-4 lg:bottom-8 lg:right-8 z-[110] flex flex-col items-end gap-4 ${isOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+        {isOpen && (
+          <div className="w-[92vw] lg:w-[400px] h-[85vh] lg:h-[650px] bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 duration-300 ease-out pointer-events-auto">
+            {/* Header */}
+            <div className="bg-navy p-5 lg:p-6 text-white flex justify-between items-center shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-field-green rounded-full flex items-center justify-center shadow-lg shadow-field-green/20">
                   <Truck size={20} className="text-white" />
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 border-2 border-navy rounded-full"></div>
-              </div>
-              <div>
-                <span className="font-bold text-lg block leading-tight">SepticGrowth Pro</span>
-                <span className="text-white/60 text-xs font-medium uppercase tracking-widest">{lang === 'en' ? 'Sales Assistant' : 'Assistant Vente'}</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <button 
-                onClick={() => {
-                   if (isLive) stopLive();
-                   setMode(mode === 'chat' ? 'voice' : 'chat');
-                }}
-                className={`p-2.5 rounded-xl transition-all duration-300 ${mode === 'voice' ? 'bg-field-green scale-110 shadow-lg shadow-field-green/40' : 'hover:bg-white/10'}`}
-                title={mode === 'chat' ? 'Switch to Voice' : 'Switch to Chat'}
-              >
-                {mode === 'chat' ? <Phone size={20}/> : <MessageCircle size={20}/>}
-              </button>
-              <button onClick={() => setIsOpen(false)} className="hover:bg-white/10 p-2.5 rounded-xl transition-all">
-                <X size={22} />
-              </button>
-            </div>
-          </div>
-          
-          {/* Chat/Phone Area */}
-          <div className="flex-1 overflow-y-auto bg-slate-50 flex flex-col scroll-smooth">
-            {mode === 'chat' ? (
-              <div className="p-6 flex flex-col gap-4">
-                {messages.length === 0 && !isTyping ? (
-                  <div className="mt-20 text-center px-6 animate-in fade-in zoom-in duration-700">
-                    <div className="w-16 h-16 bg-navy/5 rounded-2xl flex items-center justify-center mx-auto mb-6 text-navy">
-                      <Zap size={32} />
-                    </div>
-                    <h4 className="font-bold text-navy text-xl mb-3">
-                      {lang === 'en' ? 'Ready to grow your business?' : 'Prêt à booster votre business ?'}
-                    </h4>
-                    <p className="text-slate-500 text-sm leading-relaxed">
-                      {lang === 'en' 
-                        ? 'Hey there! Do you run a septic or well water service company? I can show you how to get more jobs automatically.' 
-                        : 'Bonjour ! Gérez-vous une entreprise de services septiques ? Je peux vous aider à automatiser vos contrats.'}
-                    </p>
+                <div>
+                  <span className="font-bold text-base lg:text-lg block leading-tight">SepticGrowth Pro</span>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-white/60 text-[10px] font-medium uppercase tracking-widest">{lang === 'en' ? 'Online Assistant' : 'Assistant en ligne'}</span>
                   </div>
-                ) : (
-                  messages.map((msg, i) => (
-                    <div key={i} className={`max-w-[85%] p-4 rounded-2xl shadow-sm leading-relaxed text-sm animate-in slide-in-from-bottom-2 duration-300 ${
-                      msg.role === 'ai' 
-                        ? 'bg-white border border-slate-200 self-start text-slate-800' 
-                        : 'bg-navy text-white self-end font-medium'
-                    }`}>
-                      {msg.text}
-                    </div>
-                  ))
-                )}
-                {isTyping && (
-                  <div className="bg-white border border-slate-200 self-start p-4 rounded-2xl flex gap-1.5 items-center shadow-sm">
-                    <div className="w-2 h-2 bg-slate-300 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-slate-300 rounded-full animate-bounce delay-75"></div>
-                    <div className="w-2 h-2 bg-slate-300 rounded-full animate-bounce delay-150"></div>
-                  </div>
-                )}
-                <div ref={chatEndRef} />
-              </div>
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
-                <div className="relative mb-8">
-                  <div className={`w-32 h-32 bg-navy rounded-full flex items-center justify-center shadow-2xl transition-all duration-500 ${isLive ? 'scale-110' : 'scale-100'}`}>
-                    {isLive ? (
-                       <div className="flex items-end gap-1.5 h-12">
-                          {[1,2,3,4,5].map(i => (
-                            <div key={i} className={`w-1.5 bg-field-green rounded-full animate-pulse`} style={{ height: `${Math.random() * 100}%`, animationDelay: `${i * 0.1}s` }}></div>
-                          ))}
-                       </div>
-                    ) : (
-                      <Headphones size={48} className="text-white/20" />
-                    )}
-                  </div>
-                  {isLive && (
-                    <div className="absolute -inset-4 border-2 border-field-green/20 rounded-full animate-ping"></div>
-                  )}
                 </div>
-                <h3 className="text-2xl font-black text-navy mb-2">
-                  {isConnecting ? (lang === 'en' ? 'Connecting...' : 'Connexion...') : 
-                   isLive ? (lang === 'en' ? 'On Air' : 'En Ligne') : 
-                   (lang === 'en' ? 'Voice Call' : 'Appel Vocal')}
-                </h3>
-                <p className="text-slate-400 text-sm max-w-[240px]">
-                  {isLive 
-                    ? (lang === 'en' ? 'Speak naturally. I am listening and ready to help you grow.' : 'Parlez naturellement. Je vous écoute.') 
-                    : (lang === 'en' ? 'Start a real-time conversation with our AI agent.' : 'Démarrez une conversation en temps réel avec notre agent.')}
-                </p>
-                
-                {!isLive && !isConnecting && (
-                  <div className="mt-8 flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-full text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    <ShieldCheck size={12} className="text-field-green" />
-                    No transcripts • Private call
-                  </div>
-                )}
               </div>
-            )}
-          </div>
-
-          {/* Footer Area */}
-          <div className="p-6 border-t border-slate-100 bg-white shrink-0">
-            {mode === 'chat' ? (
-              <div className="flex gap-3">
-                <input 
-                  type="text" 
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  placeholder={lang === 'en' ? 'Ask about growing your business...' : 'Posez une question...'}
-                  className="flex-1 bg-slate-100 border-none rounded-2xl px-5 py-4 text-sm font-medium focus:ring-2 focus:ring-field-green transition-all placeholder:text-slate-400"
-                />
+              <div className="flex items-center gap-2 lg:gap-4">
                 <button 
-                  onClick={handleSendMessage}
-                  disabled={isTyping || !inputText.trim()}
-                  className="bg-navy text-white p-4 rounded-2xl hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none shadow-lg shadow-navy/20"
+                  onClick={(e) => {
+                     e.stopPropagation();
+                     if (isLive) stopLive();
+                     setMode(mode === 'chat' ? 'voice' : 'chat');
+                  }}
+                  className={`p-2 rounded-xl transition-all ${mode === 'voice' ? 'bg-field-green shadow-lg shadow-field-green/40' : 'hover:bg-white/10'}`}
+                  title="Switch Mode"
                 >
-                  <Send size={20} />
+                  {mode === 'chat' ? <Phone size={20}/> : <MessageCircle size={20}/>}
+                </button>
+                <button onClick={() => setIsOpen(false)} className="hover:bg-white/10 p-2 rounded-xl">
+                  <X size={22} />
                 </button>
               </div>
-            ) : (
-              <div className="flex flex-col gap-4">
-                {!isLive && !isConnecting ? (
-                  <button 
-                    onClick={startLive}
-                    className="w-full bg-field-green hover:bg-green-700 text-white font-bold py-4.5 rounded-2xl flex items-center justify-center gap-3 transition-all shadow-xl shadow-field-green/30 active:scale-[0.98]"
-                  >
-                    <Phone size={22} />
-                    <span className="text-base">{lang === 'en' ? 'Start AI Sales Call' : 'Démarrer l\'appel IA'}</span>
-                  </button>
-                ) : (
-                  <button 
-                    onClick={stopLive}
-                    disabled={isConnecting}
-                    className={`w-full ${isConnecting ? 'bg-slate-200 text-slate-400' : 'bg-red-500 hover:bg-red-600 text-white'} font-bold py-4.5 rounded-2xl flex items-center justify-center gap-3 transition-all shadow-xl active:scale-[0.98]`}
-                  >
-                    {isConnecting ? <Loader2 size={22} className="animate-spin" /> : <MicOff size={22} />}
-                    <span className="text-base">{isConnecting ? (lang === 'en' ? 'Connecting...' : 'Connexion...') : (lang === 'en' ? 'End Call' : 'Terminer')}</span>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+            </div>
+            
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto bg-slate-50 flex flex-col relative">
+              {mode === 'chat' ? (
+                <div className="p-4 lg:p-6 flex flex-col gap-4">
+                  {messages.length === 0 && !isTyping ? (
+                    <div className="mt-12 lg:mt-16 text-center px-6">
+                      <div className="w-16 h-16 bg-navy/5 rounded-2xl flex items-center justify-center mx-auto mb-6 text-navy">
+                        <CalendarDays size={32} />
+                      </div>
+                      <h4 className="font-bold text-navy text-lg mb-2">
+                        {lang === 'en' ? 'Book Your Growth Session' : 'Réservez votre session'}
+                      </h4>
+                      <p className="text-slate-500 text-sm leading-relaxed mb-6">
+                        {lang === 'en' 
+                          ? "I'm here to help you automate your septic business. Ask me anything or just say 'I want to book' to see available times." 
+                          : "Je suis là pour automatiser votre entreprise. Demandez-moi n'importe quoi ou dites 'Je veux réserver'."}
+                      </p>
+                      <button 
+                        onClick={() => window.open(BOOKING_URL, '_blank')}
+                        className="w-full bg-field-green text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-md"
+                      >
+                        <ExternalLink size={18} />
+                        {lang === 'en' ? 'Open Calendar Directly' : 'Ouvrir le calendrier'}
+                      </button>
+                    </div>
+                  ) : (
+                    messages.map((msg, i) => (
+                      <div key={i} className={`flex flex-col gap-2 ${msg.role === 'ai' ? 'items-start' : 'items-end'}`}>
+                        <div className={`max-w-[90%] p-3 lg:p-4 rounded-2xl shadow-sm text-sm leading-relaxed ${
+                          msg.role === 'ai' 
+                            ? 'bg-white border border-slate-200 text-slate-800' 
+                            : 'bg-navy text-white font-medium'
+                        }`}>
+                          {msg.text}
+                        </div>
+                        {msg.showBooking && (
+                          <div className="w-[90%] mt-1 animate-in zoom-in-95 duration-300">
+                             <a 
+                                href={BOOKING_URL} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-between bg-field-green text-white p-4 rounded-2xl font-bold hover:scale-[1.02] transition-all shadow-lg shadow-field-green/20 group"
+                             >
+                               <div className="flex items-center gap-3">
+                                 <Calendar size={20} />
+                                 <div className="text-left">
+                                   <div className="text-xs opacity-80 uppercase tracking-tighter">Secure Spot</div>
+                                   <div>{lang === 'en' ? 'Book on Calendar' : 'Réserver maintenant'}</div>
+                                 </div>
+                               </div>
+                               <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                             </a>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                  {isTyping && (
+                    <div className="bg-white border border-slate-200 p-3 rounded-2xl self-start flex gap-1 items-center">
+                      <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce"></div>
+                      <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce delay-75"></div>
+                      <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce delay-150"></div>
+                    </div>
+                  )}
+                  <div ref={chatEndRef} />
+                </div>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-white/50 backdrop-blur-sm">
+                  <div className="absolute top-0 left-0 w-full p-4">
+                    <div className="bg-field-green/10 border border-field-green/20 text-field-green p-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                       <Zap size={14} /> {lang === 'en' ? 'Real-time Voice Booking Active' : 'Réservation vocale active'}
+                    </div>
+                  </div>
+                  
+                  <div className={`w-28 h-28 lg:w-36 lg:h-36 bg-navy rounded-full flex items-center justify-center shadow-2xl mb-8 relative transition-all duration-500 ${isLive ? 'scale-110 shadow-field-green/20' : ''}`}>
+                    {isLive ? (
+                      <>
+                        <Mic size={48} className="text-field-green animate-pulse" />
+                        <div className="absolute -inset-4 border-2 border-field-green/20 rounded-full animate-ping"></div>
+                      </>
+                    ) : (
+                      <Headphones size={48} className="text-white/10" />
+                    )}
+                  </div>
+                  
+                  <h3 className="text-2xl font-black text-navy mb-2">
+                    {isConnecting ? 'Connecting...' : (isLive ? (lang === 'en' ? 'I am listening' : 'Je vous écoute') : (lang === 'en' ? 'Voice Agent' : 'Agent Vocal'))}
+                  </h3>
+                  <p className="text-slate-500 text-sm max-w-[240px] leading-relaxed">
+                    {isLive 
+                      ? (lang === 'en' ? "Tell me about your septic business and I'll find a time for us to talk." : "Dites-moi en plus sur votre entreprise.")
+                      : (lang === 'en' ? "Talk hands-free while you're on site. We'll handle the scheduling." : "Parlez en mains libres pendant que vous êtes sur le terrain.")}
+                  </p>
 
-      {/* Launcher Button */}
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-16 h-16 bg-navy text-white rounded-2xl flex items-center justify-center shadow-[0_15px_40px_-10px_rgba(15,23,42,0.5)] hover:scale-110 hover:-translate-y-1 transition-all duration-300 active:scale-90 group relative pointer-events-auto"
-      >
-        {isOpen ? <X size={28} /> : <MessageCircle size={28} />}
-        {!isOpen && (
-          <div className="absolute right-full mr-5 whitespace-nowrap bg-white text-navy px-4 py-3 rounded-2xl text-sm font-bold shadow-[0_10px_30px_-5px_rgba(0,0,0,0.15)] border border-slate-100 opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-4 group-hover:translate-x-0 flex items-center gap-3">
-            <Zap size={18} className="text-field-green" />
-            {lang === 'en' ? 'Talk to our AI Agent' : 'Parlez à notre IA'}
+                  {isLive && (
+                    <div className="mt-8 animate-in slide-in-from-bottom-4 duration-500">
+                       <button 
+                        onClick={() => window.open(BOOKING_URL, '_blank')}
+                        className="bg-white border-2 border-slate-200 text-navy px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-sm hover:border-navy transition-all"
+                       >
+                         <ExternalLink size={18} />
+                         {lang === 'en' ? 'View Calendar Link' : 'Voir le calendrier'}
+                       </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Input / Controls */}
+            <div className="p-4 lg:p-6 border-t border-slate-100 bg-white shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.05)]">
+              {mode === 'chat' ? (
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                    placeholder={lang === 'en' ? 'Type a message...' : 'Écrivez ici...'}
+                    className="flex-1 bg-slate-100 rounded-2xl px-5 py-4 text-sm font-medium focus:ring-2 focus:ring-field-green transition-all outline-none border-none placeholder:text-slate-400"
+                  />
+                  <button 
+                    onClick={handleSendMessage} 
+                    disabled={!inputText.trim() || isTyping}
+                    className="bg-navy text-white p-4 rounded-2xl active:scale-95 transition-all disabled:opacity-20 shadow-lg shadow-navy/20"
+                  >
+                    <Send size={20} />
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={isLive ? stopLive : startLive}
+                  disabled={isConnecting}
+                  className={`w-full ${isLive ? 'bg-red-500 hover:bg-red-600' : 'bg-field-green hover:bg-green-700'} text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 shadow-xl transition-all active:scale-95`}
+                >
+                  {isConnecting ? <Loader2 className="animate-spin" /> : (isLive ? <MicOff /> : <Phone />)}
+                  <span className="text-lg">{isConnecting ? 'Connecting...' : (isLive ? (lang === 'en' ? 'End Conversation' : 'Terminer') : (lang === 'en' ? 'Start Voice Booking' : 'Démarrer'))}</span>
+                </button>
+              )}
+            </div>
           </div>
         )}
-      </button>
-    </div>
+
+        <button 
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-14 h-14 lg:w-16 lg:h-16 bg-navy text-white rounded-2xl flex items-center justify-center shadow-[0_20px_50px_-10px_rgba(15,23,42,0.4)] hover:scale-110 transition-transform active:scale-90 pointer-events-auto group relative"
+        >
+          {isOpen ? <X size={24} /> : <MessageCircle size={28} />}
+          {!isOpen && (
+            <div className="absolute right-full mr-4 bg-white text-navy px-4 py-2 rounded-xl text-xs font-black shadow-xl border border-slate-100 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0">
+               {lang === 'en' ? 'Book a Call with AI' : 'Réservez via IA'}
+            </div>
+          )}
+        </button>
+      </div>
+    </>
   );
 };
 
@@ -508,7 +543,7 @@ const content = {
 };
 
 // --- Helper for Smooth Scrolling ---
-const handleGlobalNavClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+const handleGlobalNavClick = (e: React.MouseEvent<HTMLAnchorElement> | React.MouseEvent<HTMLDivElement>, id: string) => {
   e.preventDefault();
   const element = document.getElementById(id);
   if (element) {
@@ -546,7 +581,7 @@ const Navbar = ({ lang, setLang }: { lang: 'en' | 'fr', setLang: (l: 'en' | 'fr'
     <nav className="fixed w-full bg-white/95 backdrop-blur-sm z-50 border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-20 items-center">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={(e) => onNavClick(e as any, 'top')}>
+          <div className="flex items-center gap-2 cursor-pointer" onClick={(e: any) => handleGlobalNavClick(e, 'top')}>
             <div className="bg-navy p-2 rounded-lg">
               <Truck className="text-white w-6 h-6" />
             </div>
@@ -582,7 +617,7 @@ const Navbar = ({ lang, setLang }: { lang: 'en' | 'fr', setLang: (l: 'en' | 'fr'
         <div className="md:hidden bg-white border-b border-slate-100 px-4 pt-2 pb-6 space-y-2">
           <a href="#how-it-works" onClick={(e) => onNavClick(e, 'how-it-works')} className="block px-3 py-4 text-base font-semibold text-slate-700 border-b border-slate-50">{t.how}</a>
           <a href="#services" onClick={(e) => onNavClick(e, 'services')} className="block px-3 py-4 text-base font-semibold text-slate-700 border-b border-slate-50">{t.services}</a>
-          <div className="pt-4">
+          <div className="pt-4 px-3">
             <a 
               href={BOOKING_URL} 
               target="_blank" 
@@ -601,24 +636,24 @@ const Navbar = ({ lang, setLang }: { lang: 'en' | 'fr', setLang: (l: 'en' | 'fr'
 const Hero = ({ lang }: { lang: 'en' | 'fr' }) => {
   const t = content[lang].hero;
   return (
-    <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+    <section className="relative pt-32 pb-16 lg:pt-48 lg:pb-32 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 bg-field-green/10 text-field-green px-4 py-2 rounded-full text-sm font-bold mb-6">
-            <ShieldCheck size={18} />
+          <div className="inline-flex items-center gap-2 bg-field-green/10 text-field-green px-4 py-2 rounded-full text-xs lg:text-sm font-bold mb-6">
+            <ShieldCheck size={16} />
             <span>{t.tag}</span>
           </div>
-          <h1 className="text-5xl lg:text-7xl font-extrabold text-navy leading-[1.1] mb-6">
+          <h1 className="text-4xl lg:text-7xl font-extrabold text-navy leading-[1.1] mb-6">
             {t.title} <span className="text-field-green">{t.titleAccent}</span>
           </h1>
-          <p className="text-xl text-slate-600 mb-8 leading-relaxed max-w-2xl">
+          <p className="text-lg lg:text-xl text-slate-600 mb-8 leading-relaxed max-w-2xl">
             {t.desc}
           </p>
           
-          <ul className="space-y-4 mb-10">
+          <ul className="space-y-3 lg:space-y-4 mb-10">
             {t.bullets.map((item, i) => (
-              <li key={i} className="flex items-center gap-3 text-lg font-medium text-slate-700">
-                <CheckCircle2 className="text-field-green" size={24} />
+              <li key={i} className="flex items-center gap-3 text-base lg:text-lg font-medium text-slate-700">
+                <CheckCircle2 className="text-field-green shrink-0" size={22} />
                 {item}
               </li>
             ))}
@@ -629,11 +664,11 @@ const Hero = ({ lang }: { lang: 'en' | 'fr' }) => {
               href={BOOKING_URL} 
               target="_blank" 
               rel="noopener noreferrer" 
-              className="bg-navy text-white px-8 py-5 rounded-xl font-bold text-lg hover:bg-slate-800 transition-all shadow-xl shadow-navy/20 flex items-center justify-center gap-2 group"
+              className="bg-navy text-white px-8 py-4 lg:py-5 rounded-xl font-bold text-lg hover:bg-slate-800 transition-all shadow-xl shadow-navy/20 flex items-center justify-center gap-2 group"
             >
               {t.ctaPrimary} <ArrowRight className="group-hover:translate-x-1 transition-transform" />
             </a>
-            <button className="bg-white text-navy border-2 border-slate-200 px-8 py-5 rounded-xl font-bold text-lg hover:border-navy transition-all flex items-center justify-center gap-2">
+            <button className="bg-white text-navy border-2 border-slate-200 px-8 py-4 lg:py-5 rounded-xl font-bold text-lg hover:border-navy transition-all flex items-center justify-center gap-2">
               {t.ctaSecondary}
             </button>
           </div>
@@ -656,17 +691,17 @@ const ProblemSection = ({ lang }: { lang: 'en' | 'fr' }) => {
   const icons = [<Phone className="text-red-500" />, <Locate className="text-red-500" />, <Clock className="text-red-500" />, <Zap className="text-red-500" />];
 
   return (
-    <section className="py-24 bg-slate-50">
+    <section className="py-20 lg:py-24 bg-slate-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-3xl font-bold text-navy mb-4">{t.title}</h2>
-          <p className="text-lg text-slate-600 italic">"{t.quote}"</p>
+          <h2 className="text-2xl lg:text-3xl font-bold text-navy mb-4">{t.title}</h2>
+          <p className="text-base lg:text-lg text-slate-600 italic">"{t.quote}"</p>
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
           {t.items.map((p, i) => (
-            <div key={i} className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
+            <div key={i} className="bg-white p-6 lg:p-8 rounded-2xl border border-slate-100 shadow-sm">
               <div className="mb-4">{icons[i]}</div>
-              <h3 className="text-xl font-bold text-navy mb-3">{p.title}</h3>
+              <h3 className="text-lg lg:text-xl font-bold text-navy mb-3">{p.title}</h3>
               <p className="text-slate-600 text-sm leading-relaxed">{p.desc}</p>
             </div>
           ))}
@@ -679,10 +714,10 @@ const ProblemSection = ({ lang }: { lang: 'en' | 'fr' }) => {
 const HowItWorks = ({ lang }: { lang: 'en' | 'fr' }) => {
   const t = content[lang].how;
   return (
-    <section id="how-it-works" className="py-24 bg-navy text-white">
+    <section id="how-it-works" className="py-20 lg:py-24 bg-navy text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-extrabold mb-4">{t.title}</h2>
+          <h2 className="text-3xl lg:text-4xl font-extrabold mb-4">{t.title}</h2>
           <p className="text-slate-400 max-w-xl mx-auto">{t.subtitle}</p>
         </div>
         <div className="grid md:grid-cols-3 gap-12 relative">
@@ -692,8 +727,8 @@ const HowItWorks = ({ lang }: { lang: 'en' | 'fr' }) => {
               <div className="w-20 h-20 bg-field-green rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-black shadow-xl">
                 {item.step}
               </div>
-              <h3 className="text-2xl font-bold mb-4">{item.title}</h3>
-              <p className="text-slate-400 leading-relaxed">{item.desc}</p>
+              <h3 className="text-xl lg:text-2xl font-bold mb-4">{item.title}</h3>
+              <p className="text-slate-400 leading-relaxed text-sm lg:text-base">{item.desc}</p>
             </div>
           ))}
         </div>
@@ -707,19 +742,19 @@ const Services = ({ lang }: { lang: 'en' | 'fr' }) => {
   const icons = [<Phone />, <Droplets />, <MessageSquare />, <TrendingUp />, <Calendar />, <Truck />];
   
   return (
-    <section id="services" className="py-24">
+    <section id="services" className="py-20 lg:py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-extrabold text-navy mb-4">{t.title}</h2>
-          <p className="text-lg text-slate-600">{t.subtitle}</p>
+          <h2 className="text-3xl lg:text-4xl font-extrabold text-navy mb-4">{t.title}</h2>
+          <p className="text-base lg:text-lg text-slate-600">{t.subtitle}</p>
         </div>
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
           {t.items.map((s, i) => (
-            <div key={i} className="group p-8 rounded-2xl border border-slate-100 bg-white hover:border-field-green transition-all shadow-sm">
+            <div key={i} className="group p-6 lg:p-8 rounded-2xl border border-slate-100 bg-white hover:border-field-green transition-all shadow-sm">
               <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-navy group-hover:bg-field-green group-hover:text-white transition-all mb-6">
                 {icons[i]}
               </div>
-              <h4 className="text-xl font-bold text-navy mb-3">{s.title}</h4>
+              <h4 className="text-lg lg:text-xl font-bold text-navy mb-3">{s.title}</h4>
               <p className="text-slate-600 text-sm leading-relaxed">{s.desc}</p>
             </div>
           ))}
@@ -733,18 +768,18 @@ const About = ({ lang }: { lang: 'en' | 'fr' }) => {
   const isEn = lang === 'en';
 
   return (
-    <section id="about" className="py-24">
+    <section id="about" className="py-20 lg:py-24">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center">
-          <h2 className="text-3xl font-extrabold text-navy mb-6">{isEn ? "Built Specifically for Septic & Well Pros" : "Conçu spécifiquement pour les pros du septique"}</h2>
-          <p className="text-lg text-slate-600 mb-8 leading-relaxed">
+          <h2 className="text-2xl lg:text-3xl font-extrabold text-navy mb-6">{isEn ? "Built Specifically for Septic & Well Pros" : "Conçu spécifiquement pour les pros du septique"}</h2>
+          <p className="text-base lg:text-lg text-slate-600 mb-8 leading-relaxed">
             {isEn ? "Most agencies serve dentists, lawyers, and florists. We realized the septic and well water industry was being ignored or overcharged for generic services that don't fit the field-service reality." : "La plupart des agences servent des dentistes ou des fleuristes. Nous avons réalisé que l'industrie du septique était ignorée ou surfacturée pour des services génériques inadaptés."}
           </p>
-          <div className="flex flex-wrap justify-center gap-6">
-            <div className="flex items-center gap-2 font-bold text-navy text-sm sm:text-base">
+          <div className="flex flex-wrap justify-center gap-4 lg:gap-6">
+            <div className="flex items-center gap-2 font-bold text-navy text-sm lg:text-base">
               <CheckCircle2 className="text-field-green" size={18} /> {isEn ? "100% Niche Focus" : "100% Focus Niche"}
             </div>
-            <div className="flex items-center gap-2 font-bold text-navy text-sm sm:text-base">
+            <div className="flex items-center gap-2 font-bold text-navy text-sm lg:text-base">
               <CheckCircle2 className="text-field-green" size={18} /> {isEn ? "No Long Contracts" : "Sans engagement"}
             </div>
           </div>
@@ -758,7 +793,7 @@ const Footer = ({ lang }: { lang: 'en' | 'fr' }) => {
   const t = content[lang].footer;
   const nav = content[lang].nav;
   return (
-    <footer className="bg-navy pt-20 pb-10 text-slate-400 relative z-10">
+    <footer className="bg-navy pt-16 pb-10 text-slate-400 relative z-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid md:grid-cols-4 gap-12 mb-16">
           <div className="col-span-1 md:col-span-2">
@@ -768,23 +803,23 @@ const Footer = ({ lang }: { lang: 'en' | 'fr' }) => {
               </div>
               <span className="text-xl font-extrabold text-white tracking-tight uppercase">SEPTIC<span className="text-field-green">GROWTH</span></span>
             </div>
-            <p className="max-w-sm mb-6">{t.desc}</p>
+            <p className="max-w-sm mb-6 text-sm leading-relaxed">{t.desc}</p>
           </div>
           <div>
-            <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-xs">Navigation</h4>
+            <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-[10px]">Navigation</h4>
             <ul className="space-y-4 text-sm font-medium">
               <li><a href="#top" onClick={(e) => handleGlobalNavClick(e, 'top')} className="hover:text-field-green transition-colors">{nav.home}</a></li>
               <li><a href="#how-it-works" onClick={(e) => handleGlobalNavClick(e, 'how-it-works')} className="hover:text-field-green transition-colors">{nav.how}</a></li>
             </ul>
           </div>
           <div>
-            <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-xs">Contact</h4>
+            <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-[10px]">Contact</h4>
             <ul className="space-y-4 text-sm font-medium">
               <li>septicgrowth4@gmail.com</li>
             </ul>
           </div>
         </div>
-        <div className="border-t border-slate-800 pt-8 text-center text-xs">
+        <div className="border-t border-slate-800 pt-8 text-center text-[10px]">
           <p>{t.rights}</p>
         </div>
       </div>
@@ -797,29 +832,29 @@ export default function App() {
   const t = content[lang];
 
   return (
-    <div id="top" className="antialiased selection:bg-field-green selection:text-white">
+    <div id="top" className="antialiased selection:bg-field-green selection:text-white bg-white min-h-screen">
       <Navbar lang={lang} setLang={setLang} />
       <Hero lang={lang} />
       <ProblemSection lang={lang} />
       <HowItWorks lang={lang} />
       <Services lang={lang} />
       
-      <section id="results" className="py-24 bg-white border-t border-slate-100">
+      <section id="results" className="py-20 lg:py-24 bg-white border-t border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-extrabold text-navy mb-4">{lang === 'en' ? "The Impact of Better Systems" : "L'impact de meilleurs systèmes"}</h2>
+            <h2 className="text-3xl lg:text-4xl font-extrabold text-navy mb-4">{lang === 'en' ? "The Impact of Better Systems" : "L'impact de meilleurs systèmes"}</h2>
           </div>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-slate-50 p-8 rounded-3xl border border-slate-100">
-              <div className="flex items-center gap-4 mb-4 text-field-green"><Zap size={24} /><h4 className="font-bold text-navy text-xl">{lang === 'en' ? "Instant Engagement" : "Engagement Instantané"}</h4></div>
+          <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
+            <div className="bg-slate-50 p-6 lg:p-8 rounded-3xl border border-slate-100">
+              <div className="flex items-center gap-4 mb-4 text-field-green"><Zap size={24} /><h4 className="font-bold text-navy text-lg lg:text-xl">{lang === 'en' ? "Instant Engagement" : "Engagement Instantané"}</h4></div>
               <p className="text-slate-600 text-sm leading-relaxed">
                 {lang === 'en' 
                   ? "Most septic companies lose 60% of their leads because they can't answer while servicing a tank. We ensure you are the first professional they talk to."
                   : "La plupart des entreprises perdent 60% de leurs leads car elles ne peuvent pas répondre en service. Nous assurons que vous soyez le premier contact."}
               </p>
             </div>
-            <div className="bg-slate-50 p-8 rounded-3xl border border-slate-100">
-              <div className="flex items-center gap-4 mb-4 text-navy"><TrendingUp size={24} /><h4 className="font-bold text-navy text-xl">{lang === 'en' ? "Market Dominance" : "Dominance du Marché"}</h4></div>
+            <div className="bg-slate-50 p-6 lg:p-8 rounded-3xl border border-slate-100">
+              <div className="flex items-center gap-4 mb-4 text-navy"><TrendingUp size={24} /><h4 className="font-bold text-navy text-lg lg:text-xl">{lang === 'en' ? "Market Dominance" : "Dominance du Marché"}</h4></div>
               <p className="text-slate-600 text-sm leading-relaxed">
                 {lang === 'en'
                   ? "We help local owners out-position regional franchises without massive ad budgets."
@@ -832,15 +867,15 @@ export default function App() {
 
       <About lang={lang} />
       
-      <section className="py-24 bg-navy text-white text-center relative z-10">
+      <section className="py-20 lg:py-24 bg-navy text-white text-center relative z-10">
         <div className="max-w-4xl mx-auto px-4">
-          <h2 className="text-4xl font-black mb-6">{t.ctaFinal.title}</h2>
-          <p className="text-xl text-slate-400 mb-10">{t.ctaFinal.desc}</p>
+          <h2 className="text-3xl lg:text-4xl font-black mb-6">{t.ctaFinal.title}</h2>
+          <p className="text-lg lg:text-xl text-slate-400 mb-10">{t.ctaFinal.desc}</p>
           <a 
             href={BOOKING_URL} 
             target="_blank" 
             rel="noopener noreferrer" 
-            className="inline-flex bg-field-green text-white px-10 py-6 rounded-2xl font-black text-xl hover:bg-green-700 transition-all shadow-2xl items-center justify-center gap-3 mx-auto"
+            className="inline-flex bg-field-green text-white px-8 py-5 lg:px-10 lg:py-6 rounded-2xl font-black text-lg lg:text-xl hover:bg-green-700 transition-all shadow-2xl items-center justify-center gap-3 mx-auto active:scale-95"
           >
             {t.nav.book} <ArrowRight />
           </a>
