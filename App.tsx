@@ -226,9 +226,9 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
   };
 
   return (
-    <div className="fixed bottom-8 left-8 z-[60] flex flex-col items-start gap-4">
+    <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end gap-4 pointer-events-none">
       {isOpen && (
-        <div className="w-[400px] h-[600px] bg-white rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-slate-200 overflow-hidden flex flex-col mb-4 animate-in slide-in-from-bottom-8 duration-500 ease-out">
+        <div className="w-[400px] h-[600px] bg-white rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-slate-200 overflow-hidden flex flex-col mb-4 animate-in slide-in-from-bottom-8 duration-500 ease-out pointer-events-auto">
           {/* Header */}
           <div className="bg-navy p-6 text-white flex justify-between items-center shrink-0">
             <div className="flex items-center gap-3">
@@ -386,11 +386,11 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
       {/* Launcher Button */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="w-16 h-16 bg-navy text-white rounded-2xl flex items-center justify-center shadow-[0_15px_40px_-10px_rgba(15,23,42,0.5)] hover:scale-110 hover:-translate-y-1 transition-all duration-300 active:scale-90 group relative"
+        className="w-16 h-16 bg-navy text-white rounded-2xl flex items-center justify-center shadow-[0_15px_40px_-10px_rgba(15,23,42,0.5)] hover:scale-110 hover:-translate-y-1 transition-all duration-300 active:scale-90 group relative pointer-events-auto"
       >
         {isOpen ? <X size={28} /> : <MessageCircle size={28} />}
         {!isOpen && (
-          <div className="absolute left-full ml-5 whitespace-nowrap bg-white text-navy px-4 py-3 rounded-2xl text-sm font-bold shadow-[0_10px_30px_-5px_rgba(0,0,0,0.15)] border border-slate-100 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0 flex items-center gap-3">
+          <div className="absolute right-full mr-5 whitespace-nowrap bg-white text-navy px-4 py-3 rounded-2xl text-sm font-bold shadow-[0_10px_30px_-5px_rgba(0,0,0,0.15)] border border-slate-100 opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-4 group-hover:translate-x-0 flex items-center gap-3">
             <Zap size={18} className="text-field-green" />
             {lang === 'en' ? 'Talk to our AI Agent' : 'Parlez à notre IA'}
           </div>
@@ -507,6 +507,20 @@ const content = {
   }
 };
 
+// --- Helper for Smooth Scrolling ---
+const handleGlobalNavClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+  e.preventDefault();
+  const element = document.getElementById(id);
+  if (element) {
+    const offset = 80;
+    const elementPosition = element.getBoundingClientRect().top;
+    const offsetPosition = elementPosition + window.pageYOffset - offset;
+    window.scrollTo({ top: offsetPosition, behavior: "smooth" });
+  } else if (id === 'top') {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+};
+
 // --- Components ---
 
 const LanguageToggle = ({ lang, setLang }: { lang: 'en' | 'fr', setLang: (l: 'en' | 'fr') => void }) => (
@@ -523,25 +537,16 @@ const Navbar = ({ lang, setLang }: { lang: 'en' | 'fr', setLang: (l: 'en' | 'fr'
   const [isOpen, setIsOpen] = useState(false);
   const t = content[lang].nav;
 
-  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
-    e.preventDefault();
+  const onNavClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     setIsOpen(false);
-    const element = document.getElementById(id);
-    if (element) {
-      const offset = 80;
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - offset;
-      window.scrollTo({ top: offsetPosition, behavior: "smooth" });
-    } else if (id === 'top') {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+    handleGlobalNavClick(e, id);
   };
 
   return (
     <nav className="fixed w-full bg-white/95 backdrop-blur-sm z-50 border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-20 items-center">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={(e) => handleNavClick(e as any, 'top')}>
+          <div className="flex items-center gap-2 cursor-pointer" onClick={(e) => onNavClick(e as any, 'top')}>
             <div className="bg-navy p-2 rounded-lg">
               <Truck className="text-white w-6 h-6" />
             </div>
@@ -549,10 +554,10 @@ const Navbar = ({ lang, setLang }: { lang: 'en' | 'fr', setLang: (l: 'en' | 'fr'
           </div>
           
           <div className="hidden md:flex items-center space-x-6">
-            <a href="#how-it-works" onClick={(e) => handleNavClick(e, 'how-it-works')} className="text-sm font-semibold text-slate-600 hover:text-navy transition-colors">{t.how}</a>
-            <a href="#services" onClick={(e) => handleNavClick(e, 'services')} className="text-sm font-semibold text-slate-600 hover:text-navy transition-colors">{t.services}</a>
-            <a href="#results" onClick={(e) => handleNavClick(e, 'results')} className="text-sm font-semibold text-slate-600 hover:text-navy transition-colors">{t.results}</a>
-            <a href="#about" onClick={(e) => handleNavClick(e, 'about')} className="text-sm font-semibold text-slate-600 hover:text-navy transition-colors">{t.about}</a>
+            <a href="#how-it-works" onClick={(e) => onNavClick(e, 'how-it-works')} className="text-sm font-semibold text-slate-600 hover:text-navy transition-colors">{t.how}</a>
+            <a href="#services" onClick={(e) => onNavClick(e, 'services')} className="text-sm font-semibold text-slate-600 hover:text-navy transition-colors">{t.services}</a>
+            <a href="#results" onClick={(e) => onNavClick(e, 'results')} className="text-sm font-semibold text-slate-600 hover:text-navy transition-colors">{t.results}</a>
+            <a href="#about" onClick={(e) => onNavClick(e, 'about')} className="text-sm font-semibold text-slate-600 hover:text-navy transition-colors">{t.about}</a>
             <LanguageToggle lang={lang} setLang={setLang} />
             <a 
               href={BOOKING_URL} 
@@ -575,8 +580,8 @@ const Navbar = ({ lang, setLang }: { lang: 'en' | 'fr', setLang: (l: 'en' | 'fr'
 
       {isOpen && (
         <div className="md:hidden bg-white border-b border-slate-100 px-4 pt-2 pb-6 space-y-2">
-          <a href="#how-it-works" onClick={(e) => handleNavClick(e, 'how-it-works')} className="block px-3 py-4 text-base font-semibold text-slate-700 border-b border-slate-50">{t.how}</a>
-          <a href="#services" onClick={(e) => handleNavClick(e, 'services')} className="block px-3 py-4 text-base font-semibold text-slate-700 border-b border-slate-50">{t.services}</a>
+          <a href="#how-it-works" onClick={(e) => onNavClick(e, 'how-it-works')} className="block px-3 py-4 text-base font-semibold text-slate-700 border-b border-slate-50">{t.how}</a>
+          <a href="#services" onClick={(e) => onNavClick(e, 'services')} className="block px-3 py-4 text-base font-semibold text-slate-700 border-b border-slate-50">{t.services}</a>
           <div className="pt-4">
             <a 
               href={BOOKING_URL} 
@@ -751,12 +756,13 @@ const About = ({ lang }: { lang: 'en' | 'fr' }) => {
 
 const Footer = ({ lang }: { lang: 'en' | 'fr' }) => {
   const t = content[lang].footer;
+  const nav = content[lang].nav;
   return (
-    <footer className="bg-navy pt-20 pb-10 text-slate-400">
+    <footer className="bg-navy pt-20 pb-10 text-slate-400 relative z-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid md:grid-cols-4 gap-12 mb-16">
           <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center gap-2 mb-6">
+            <div className="flex items-center gap-2 mb-6 cursor-pointer" onClick={(e: any) => handleGlobalNavClick(e, 'top')}>
               <div className="bg-field-green p-2 rounded-lg">
                 <Truck className="text-white w-6 h-6" />
               </div>
@@ -767,8 +773,8 @@ const Footer = ({ lang }: { lang: 'en' | 'fr' }) => {
           <div>
             <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-xs">Navigation</h4>
             <ul className="space-y-4 text-sm font-medium">
-              <li><a href="#top" className="hover:text-field-green transition-colors">Home</a></li>
-              <li><a href="#how-it-works" className="hover:text-field-green transition-colors">How It Works</a></li>
+              <li><a href="#top" onClick={(e) => handleGlobalNavClick(e, 'top')} className="hover:text-field-green transition-colors">{nav.home}</a></li>
+              <li><a href="#how-it-works" onClick={(e) => handleGlobalNavClick(e, 'how-it-works')} className="hover:text-field-green transition-colors">{nav.how}</a></li>
             </ul>
           </div>
           <div>
@@ -826,7 +832,7 @@ export default function App() {
 
       <About lang={lang} />
       
-      <section className="py-24 bg-navy text-white text-center">
+      <section className="py-24 bg-navy text-white text-center relative z-10">
         <div className="max-w-4xl mx-auto px-4">
           <h2 className="text-4xl font-black mb-6">{t.ctaFinal.title}</h2>
           <p className="text-xl text-slate-400 mb-10">{t.ctaFinal.desc}</p>
