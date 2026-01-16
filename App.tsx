@@ -8,7 +8,7 @@ import {
   MessageSquare, 
   Calendar,
   Menu,
-  X,
+  X, 
   CheckCircle2,
   ArrowRight,
   Droplets,
@@ -22,12 +22,11 @@ import {
   Send,
   MessageCircle,
   Headphones,
-  CalendarDays,
-  ExternalLink
+  CalendarDays
 } from 'lucide-react';
 import { GoogleGenAI, LiveServerMessage, Modality, Chat, GenerateContentResponse } from '@google/genai';
 
-// Global constants - Updated to your specific Google Calendar link
+// Global constants - Used in backend/AI context
 const BOOKING_URL = "https://calendar.google.com/calendar/u/0?cid=amFjcXVlc21hdG9rYTFAZ21haWwuY29t";
 
 // --- Conversational AI Widget Component ---
@@ -37,7 +36,7 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
   const [mode, setMode] = useState<'chat' | 'voice'>('chat');
   const [isLive, setIsLive] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string, showBooking?: boolean }[]>([]);
+  const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   
@@ -49,21 +48,23 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const systemInstruction = `
-    You are a high-performance sales assistant for SepticGrowth. 
-    Your ONLY goal is to get septic and well water business owners to book a 10-minute discovery call on the owner's calendar.
+    You are a professional sales booking agent for SepticGrowth. 
+    Your primary job is to qualify septic and well water service company owners and book them for a discovery call on our internal calendar.
 
-    CALENDAR LINK: ${BOOKING_URL}
+    CRITICAL INSTRUCTION: You MUST speak and respond ONLY in ${lang === 'en' ? 'English' : 'French (Français)'}. 
+    If the language is French, do not use English words. Be a native-sounding French speaker if the mode is French.
 
-    STRATEGY:
-    1. Acknowledge they are busy field pros. 
-    2. Explain that we help them never miss a lead while they are in a tank or on a job site.
-    3. As soon as they show interest or after 2-3 messages, TELL THEM to click the booking link or that you can help them schedule right now.
-    4. If they ask how to book, provide the link clearly.
+    DO NOT tell the user to "click a link". 
+    Instead, you should:
+    1. Ask for their name and business name.
+    2. Ask what their biggest struggle is (missing calls, low leads, etc.).
+    3. Suggest a 10-minute "Growth Session".
+    4. Ask for their preferred day and time.
+    5. Once they provide details, confirm that you are putting it on the calendar for them.
     
-    TONE: Professional, blue-collar friendly, urgent but helpful.
-    LANGUAGE: Respond in ${lang === 'en' ? 'English' : 'French'}.
+    TREAT THE CALENDAR AS YOUR OWN BACKEND TOOL: ${BOOKING_URL}
     
-    IMPORTANT: When you suggest booking, use the phrase "BOOK_NOW_LINK" in your text so I can show them a button.
+    TONE: Confident, helpful, field-service oriented.
   `;
 
   useEffect(() => {
@@ -89,16 +90,9 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
       }
       
       const response: GenerateContentResponse = await chatRef.current.sendMessage({ message: userMsg });
-      const text = response.text || "";
+      const text = response.text || (lang === 'en' ? "Got it. I'm noting that down for our call." : "C'est noté pour notre appel.");
       
-      const hasBooking = text.includes("BOOK_NOW_LINK");
-      const cleanedText = text.replace("BOOK_NOW_LINK", "").trim();
-
-      setMessages(prev => [...prev, { 
-        role: 'ai', 
-        text: cleanedText || (lang === 'en' ? "Let's get you scheduled on the calendar!" : "Planifions cela sur le calendrier !"), 
-        showBooking: hasBooking 
-      }]);
+      setMessages(prev => [...prev, { role: 'ai', text }]);
     } catch (err) {
       console.error("Chat Error:", err);
       setMessages(prev => [...prev, { role: 'ai', text: lang === 'en' ? 'Sorry, I encountered an error.' : 'Désolé, une erreur est survenue.' }]);
@@ -162,27 +156,28 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
   };
 
   const startLive = async () => {
+    const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+    const outputCtx = new AudioContextClass({ sampleRate: 24000 });
+    const inputCtx = new AudioContextClass({ sampleRate: 16000 });
+    
+    await outputCtx.resume();
+    await inputCtx.resume();
+    
+    audioContextRef.current = outputCtx;
     setIsConnecting(true);
     setMode('voice');
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
-      const inputCtx = new AudioContextClass({ sampleRate: 16000 });
-      const outputCtx = new AudioContextClass({ sampleRate: 24000 });
-      
-      if (outputCtx.state === 'suspended') await outputCtx.resume();
-      if (inputCtx.state === 'suspended') await inputCtx.resume();
 
-      audioContextRef.current = outputCtx;
+    try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
       const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-12-2025',
         config: {
           responseModalities: [Modality.AUDIO],
-          systemInstruction: systemInstruction + " In voice mode, tell the user they can see the booking link on their screen right now.",
+          systemInstruction: systemInstruction + " Remember: you MUST only use " + (lang === 'en' ? 'English' : 'French') + " for all interactions. Start by greeting the user naturally in that language.",
           speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } }
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } }
           },
         },
         callbacks: {
@@ -233,7 +228,7 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
     } catch (err) {
       console.error("Connection Error:", err);
       stopLive();
-      alert(lang === 'en' ? "Microphone access is required for the AI Voice Agent." : "L'accès au micro est requis.");
+      alert(lang === 'en' ? "Please allow microphone access to talk to the agent." : "Veuillez autoriser l'accès au micro.");
     }
   };
 
@@ -266,7 +261,6 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
                      setMode(mode === 'chat' ? 'voice' : 'chat');
                   }}
                   className={`p-2 rounded-xl transition-all ${mode === 'voice' ? 'bg-field-green shadow-lg shadow-field-green/40' : 'hover:bg-white/10'}`}
-                  title="Switch Mode"
                 >
                   {mode === 'chat' ? <Phone size={20}/> : <MessageCircle size={20}/>}
                 </button>
@@ -280,59 +274,24 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
             <div className="flex-1 overflow-y-auto bg-slate-50 flex flex-col relative">
               {mode === 'chat' ? (
                 <div className="p-4 lg:p-6 flex flex-col gap-4">
-                  {messages.length === 0 && !isTyping ? (
-                    <div className="mt-12 lg:mt-16 text-center px-6">
-                      <div className="w-16 h-16 bg-navy/5 rounded-2xl flex items-center justify-center mx-auto mb-6 text-navy">
-                        <CalendarDays size={32} />
-                      </div>
-                      <h4 className="font-bold text-navy text-lg mb-2">
-                        {lang === 'en' ? 'Book Your Growth Session' : 'Réservez votre session'}
-                      </h4>
-                      <p className="text-slate-500 text-sm leading-relaxed mb-6">
-                        {lang === 'en' 
-                          ? "I'm here to help you automate your septic business. Ask me anything or just say 'I want to book' to see available times." 
-                          : "Je suis là pour automatiser votre entreprise. Demandez-moi n'importe quoi ou dites 'Je veux réserver'."}
-                      </p>
-                      <button 
-                        onClick={() => window.open(BOOKING_URL, '_blank')}
-                        className="w-full bg-field-green text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-md"
-                      >
-                        <ExternalLink size={18} />
-                        {lang === 'en' ? 'Open Calendar Directly' : 'Ouvrir le calendrier'}
-                      </button>
+                  {messages.length === 0 && !isTyping && (
+                    <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm text-sm text-slate-700 leading-relaxed mb-4">
+                      {lang === 'en' 
+                        ? "Hello! I'm the SepticGrowth assistant. Are you a septic or well water business owner looking to automate your leads?"
+                        : "Bonjour ! Je suis l'assistant SepticGrowth. Êtes-vous un propriétaire d'entreprise de services septiques cherchant à automatiser vos prospects ?"}
                     </div>
-                  ) : (
-                    messages.map((msg, i) => (
-                      <div key={i} className={`flex flex-col gap-2 ${msg.role === 'ai' ? 'items-start' : 'items-end'}`}>
-                        <div className={`max-w-[90%] p-3 lg:p-4 rounded-2xl shadow-sm text-sm leading-relaxed ${
-                          msg.role === 'ai' 
-                            ? 'bg-white border border-slate-200 text-slate-800' 
-                            : 'bg-navy text-white font-medium'
-                        }`}>
-                          {msg.text}
-                        </div>
-                        {msg.showBooking && (
-                          <div className="w-[90%] mt-1 animate-in zoom-in-95 duration-300">
-                             <a 
-                                href={BOOKING_URL} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="flex items-center justify-between bg-field-green text-white p-4 rounded-2xl font-bold hover:scale-[1.02] transition-all shadow-lg shadow-field-green/20 group"
-                             >
-                               <div className="flex items-center gap-3">
-                                 <Calendar size={20} />
-                                 <div className="text-left">
-                                   <div className="text-xs opacity-80 uppercase tracking-tighter">Secure Spot</div>
-                                   <div>{lang === 'en' ? 'Book on Calendar' : 'Réserver maintenant'}</div>
-                                 </div>
-                               </div>
-                               <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                             </a>
-                          </div>
-                        )}
-                      </div>
-                    ))
                   )}
+                  {messages.map((msg, i) => (
+                    <div key={i} className={`flex flex-col gap-2 ${msg.role === 'ai' ? 'items-start' : 'items-end'}`}>
+                      <div className={`max-w-[90%] p-3 lg:p-4 rounded-2xl shadow-sm text-sm leading-relaxed ${
+                        msg.role === 'ai' 
+                          ? 'bg-white border border-slate-200 text-slate-800' 
+                          : 'bg-navy text-white font-medium'
+                      }`}>
+                        {msg.text}
+                      </div>
+                    </div>
+                  ))}
                   {isTyping && (
                     <div className="bg-white border border-slate-200 p-3 rounded-2xl self-start flex gap-1 items-center">
                       <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce"></div>
@@ -344,49 +303,30 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
                 </div>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-white/50 backdrop-blur-sm">
-                  <div className="absolute top-0 left-0 w-full p-4">
-                    <div className="bg-field-green/10 border border-field-green/20 text-field-green p-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2">
-                       <Zap size={14} /> {lang === 'en' ? 'Real-time Voice Booking Active' : 'Réservation vocale active'}
-                    </div>
-                  </div>
-                  
-                  <div className={`w-28 h-28 lg:w-36 lg:h-36 bg-navy rounded-full flex items-center justify-center shadow-2xl mb-8 relative transition-all duration-500 ${isLive ? 'scale-110 shadow-field-green/20' : ''}`}>
+                  <div className={`w-28 h-28 lg:w-36 lg:h-36 bg-navy rounded-full flex items-center justify-center shadow-2xl mb-8 relative transition-all duration-500 ${isLive ? 'scale-110 ring-4 ring-field-green/20' : ''}`}>
                     {isLive ? (
                       <>
                         <Mic size={48} className="text-field-green animate-pulse" />
-                        <div className="absolute -inset-4 border-2 border-field-green/20 rounded-full animate-ping"></div>
+                        <div className="absolute -inset-4 border-2 border-field-green/20 rounded-full animate-ping opacity-20"></div>
                       </>
                     ) : (
                       <Headphones size={48} className="text-white/10" />
                     )}
                   </div>
-                  
                   <h3 className="text-2xl font-black text-navy mb-2">
-                    {isConnecting ? 'Connecting...' : (isLive ? (lang === 'en' ? 'I am listening' : 'Je vous écoute') : (lang === 'en' ? 'Voice Agent' : 'Agent Vocal'))}
+                    {isConnecting ? (lang === 'en' ? 'Connecting...' : 'Connexion...') : (isLive ? (lang === 'en' ? 'Listening...' : 'Écoute...') : (lang === 'en' ? 'Voice Agent' : 'Agent Vocal'))}
                   </h3>
                   <p className="text-slate-500 text-sm max-w-[240px] leading-relaxed">
                     {isLive 
-                      ? (lang === 'en' ? "Tell me about your septic business and I'll find a time for us to talk." : "Dites-moi en plus sur votre entreprise.")
-                      : (lang === 'en' ? "Talk hands-free while you're on site. We'll handle the scheduling." : "Parlez en mains libres pendant que vous êtes sur le terrain.")}
+                      ? (lang === 'en' ? "I'm ready to schedule our call. Go ahead and tell me about your business." : "Je suis prêt à planifier notre appel. Parlez-moi de votre entreprise.")
+                      : (lang === 'en' ? "Talk hands-free while you're on site. I'll help you book a session." : "Parlez en mains libres. Je vous aiderai à réserver une session.")}
                   </p>
-
-                  {isLive && (
-                    <div className="mt-8 animate-in slide-in-from-bottom-4 duration-500">
-                       <button 
-                        onClick={() => window.open(BOOKING_URL, '_blank')}
-                        className="bg-white border-2 border-slate-200 text-navy px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-sm hover:border-navy transition-all"
-                       >
-                         <ExternalLink size={18} />
-                         {lang === 'en' ? 'View Calendar Link' : 'Voir le calendrier'}
-                       </button>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
 
             {/* Input / Controls */}
-            <div className="p-4 lg:p-6 border-t border-slate-100 bg-white shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.05)]">
+            <div className="p-4 lg:p-6 border-t border-slate-100 bg-white shadow-inner">
               {mode === 'chat' ? (
                 <div className="flex gap-2">
                   <input 
@@ -394,7 +334,7 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    placeholder={lang === 'en' ? 'Type a message...' : 'Écrivez ici...'}
+                    placeholder={lang === 'en' ? 'Message...' : 'Message...'}
                     className="flex-1 bg-slate-100 rounded-2xl px-5 py-4 text-sm font-medium focus:ring-2 focus:ring-field-green transition-all outline-none border-none placeholder:text-slate-400"
                   />
                   <button 
@@ -412,7 +352,7 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
                   className={`w-full ${isLive ? 'bg-red-500 hover:bg-red-600' : 'bg-field-green hover:bg-green-700'} text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 shadow-xl transition-all active:scale-95`}
                 >
                   {isConnecting ? <Loader2 className="animate-spin" /> : (isLive ? <MicOff /> : <Phone />)}
-                  <span className="text-lg">{isConnecting ? 'Connecting...' : (isLive ? (lang === 'en' ? 'End Conversation' : 'Terminer') : (lang === 'en' ? 'Start Voice Booking' : 'Démarrer'))}</span>
+                  <span className="text-lg">{isConnecting ? (lang === 'en' ? 'Connecting...' : 'Connexion...') : (isLive ? (lang === 'en' ? 'End Call' : 'Terminer') : (lang === 'en' ? 'Start Voice Agent' : 'Démarrer'))}</span>
                 </button>
               )}
             </div>
@@ -421,14 +361,9 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
 
         <button 
           onClick={() => setIsOpen(!isOpen)}
-          className="w-14 h-14 lg:w-16 lg:h-16 bg-navy text-white rounded-2xl flex items-center justify-center shadow-[0_20px_50px_-10px_rgba(15,23,42,0.4)] hover:scale-110 transition-transform active:scale-90 pointer-events-auto group relative"
+          className="w-14 h-14 lg:w-16 lg:h-16 bg-navy text-white rounded-2xl flex items-center justify-center shadow-[0_20px_50px_-10px_rgba(15,23,42,0.4)] hover:scale-110 transition-transform active:scale-90 pointer-events-auto"
         >
           {isOpen ? <X size={24} /> : <MessageCircle size={28} />}
-          {!isOpen && (
-            <div className="absolute right-full mr-4 bg-white text-navy px-4 py-2 rounded-xl text-xs font-black shadow-xl border border-slate-100 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0">
-               {lang === 'en' ? 'Book a Call with AI' : 'Réservez via IA'}
-            </div>
-          )}
         </button>
       </div>
     </>
@@ -542,7 +477,6 @@ const content = {
   }
 };
 
-// --- Helper for Smooth Scrolling ---
 const handleGlobalNavClick = (e: React.MouseEvent<HTMLAnchorElement> | React.MouseEvent<HTMLDivElement>, id: string) => {
   e.preventDefault();
   const element = document.getElementById(id);
@@ -555,8 +489,6 @@ const handleGlobalNavClick = (e: React.MouseEvent<HTMLAnchorElement> | React.Mou
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 };
-
-// --- Components ---
 
 const LanguageToggle = ({ lang, setLang }: { lang: 'en' | 'fr', setLang: (l: 'en' | 'fr') => void }) => (
   <button 
