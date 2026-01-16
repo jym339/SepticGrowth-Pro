@@ -238,52 +238,55 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
       
       <div className={`fixed bottom-4 right-4 lg:bottom-8 lg:right-8 z-[110] flex flex-col items-end gap-4 ${isOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}>
         {isOpen && (
-          <div className="w-[92vw] lg:w-[400px] h-[85vh] lg:h-[650px] bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 duration-300 ease-out pointer-events-auto">
+          <div className="w-[94vw] max-w-[420px] h-[85vh] max-h-[750px] bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 duration-300 ease-out pointer-events-auto">
             {/* Header */}
-            <div className="bg-navy p-5 lg:p-6 text-white flex justify-between items-center shrink-0">
+            <div className="bg-navy p-4 lg:p-5 text-white flex justify-between items-center shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-field-green rounded-full flex items-center justify-center shadow-lg shadow-field-green/20">
                   <Truck size={20} className="text-white" />
                 </div>
                 <div>
-                  <span className="font-bold text-base lg:text-lg block leading-tight">SepticGrowth Pro</span>
+                  <span className="font-bold text-sm lg:text-base block leading-tight">SepticGrowth Pro</span>
                   <div className="flex items-center gap-1.5">
                     <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-white/60 text-[10px] font-medium uppercase tracking-widest">{lang === 'en' ? 'Online Assistant' : 'Assistant en ligne'}</span>
+                    <span className="text-white/60 text-[10px] font-medium uppercase tracking-widest leading-none">
+                      {lang === 'en' ? 'Online Assistant' : 'Assistant en ligne'}
+                    </span>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 lg:gap-4">
+              <div className="flex items-center gap-2">
                 <button 
                   onClick={(e) => {
                      e.stopPropagation();
                      if (isLive) stopLive();
                      setMode(mode === 'chat' ? 'voice' : 'chat');
                   }}
-                  className={`p-2 rounded-xl transition-all ${mode === 'voice' ? 'bg-field-green shadow-lg shadow-field-green/40' : 'hover:bg-white/10'}`}
+                  className={`p-2.5 rounded-xl transition-all ${mode === 'voice' ? 'bg-field-green shadow-lg shadow-field-green/40' : 'hover:bg-white/10'}`}
+                  title={mode === 'chat' ? 'Switch to Voice' : 'Switch to Chat'}
                 >
                   {mode === 'chat' ? <Phone size={20}/> : <MessageCircle size={20}/>}
                 </button>
-                <button onClick={() => setIsOpen(false)} className="hover:bg-white/10 p-2 rounded-xl">
+                <button onClick={() => setIsOpen(false)} className="hover:bg-white/10 p-2.5 rounded-xl">
                   <X size={22} />
                 </button>
               </div>
             </div>
             
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto bg-slate-50 flex flex-col relative">
+            <div className="flex-1 overflow-y-auto bg-slate-50 flex flex-col relative min-h-0">
               {mode === 'chat' ? (
-                <div className="p-4 lg:p-6 flex flex-col gap-4">
+                <div className="p-4 flex flex-col gap-4">
                   {messages.length === 0 && !isTyping && (
-                    <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm text-sm text-slate-700 leading-relaxed mb-4">
+                    <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm text-sm text-slate-700 leading-relaxed">
                       {lang === 'en' 
                         ? "Hello! I'm the SepticGrowth assistant. Are you a septic or well water business owner looking to automate your leads?"
                         : "Bonjour ! Je suis l'assistant SepticGrowth. Êtes-vous un propriétaire d'entreprise de services septiques cherchant à automatiser vos prospects ?"}
                     </div>
                   )}
                   {messages.map((msg, i) => (
-                    <div key={i} className={`flex flex-col gap-2 ${msg.role === 'ai' ? 'items-start' : 'items-end'}`}>
-                      <div className={`max-w-[90%] p-3 lg:p-4 rounded-2xl shadow-sm text-sm leading-relaxed ${
+                    <div key={i} className={`flex flex-col gap-1 ${msg.role === 'ai' ? 'items-start' : 'items-end'}`}>
+                      <div className={`max-w-[85%] p-3 rounded-2xl shadow-sm text-sm leading-relaxed ${
                         msg.role === 'ai' 
                           ? 'bg-white border border-slate-200 text-slate-800' 
                           : 'bg-navy text-white font-medium'
@@ -302,21 +305,21 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
                   <div ref={chatEndRef} />
                 </div>
               ) : (
-                <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-white/50 backdrop-blur-sm">
-                  <div className={`w-28 h-28 lg:w-36 lg:h-36 bg-navy rounded-full flex items-center justify-center shadow-2xl mb-8 relative transition-all duration-500 ${isLive ? 'scale-110 ring-4 ring-field-green/20' : ''}`}>
+                <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+                  <div className={`w-28 h-28 bg-navy rounded-full flex items-center justify-center shadow-2xl mb-6 relative transition-all duration-500 ${isLive ? 'scale-110 ring-4 ring-field-green/20' : ''}`}>
                     {isLive ? (
                       <>
-                        <Mic size={48} className="text-field-green animate-pulse" />
+                        <Mic size={40} className="text-field-green animate-pulse" />
                         <div className="absolute -inset-4 border-2 border-field-green/20 rounded-full animate-ping opacity-20"></div>
                       </>
                     ) : (
-                      <Headphones size={48} className="text-white/10" />
+                      <Headphones size={40} className="text-white/10" />
                     )}
                   </div>
-                  <h3 className="text-2xl font-black text-navy mb-2">
+                  <h3 className="text-xl font-black text-navy mb-2 leading-tight">
                     {isConnecting ? (lang === 'en' ? 'Connecting...' : 'Connexion...') : (isLive ? (lang === 'en' ? 'Listening...' : 'Écoute...') : (lang === 'en' ? 'Voice Agent' : 'Agent Vocal'))}
                   </h3>
-                  <p className="text-slate-500 text-sm max-w-[240px] leading-relaxed">
+                  <p className="text-slate-500 text-sm max-w-[220px] leading-relaxed">
                     {isLive 
                       ? (lang === 'en' ? "I'm ready to schedule our call. Go ahead and tell me about your business." : "Je suis prêt à planifier notre appel. Parlez-moi de votre entreprise.")
                       : (lang === 'en' ? "Talk hands-free while you're on site. I'll help you book a session." : "Parlez en mains libres. Je vous aiderai à réserver une session.")}
@@ -326,7 +329,7 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
             </div>
 
             {/* Input / Controls */}
-            <div className="p-4 lg:p-6 border-t border-slate-100 bg-white shadow-inner">
+            <div className="p-4 border-t border-slate-100 bg-white shrink-0">
               {mode === 'chat' ? (
                 <div className="flex gap-2">
                   <input 
@@ -334,25 +337,25 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    placeholder={lang === 'en' ? 'Message...' : 'Message...'}
-                    className="flex-1 bg-slate-100 rounded-2xl px-5 py-4 text-sm font-medium focus:ring-2 focus:ring-field-green transition-all outline-none border-none placeholder:text-slate-400"
+                    placeholder={lang === 'en' ? 'Type a message...' : 'Écrire un message...'}
+                    className="flex-1 bg-slate-100 rounded-2xl px-4 py-3.5 text-sm font-medium focus:ring-2 focus:ring-field-green transition-all outline-none border-none placeholder:text-slate-400"
                   />
                   <button 
                     onClick={handleSendMessage} 
                     disabled={!inputText.trim() || isTyping}
-                    className="bg-navy text-white p-4 rounded-2xl active:scale-95 transition-all disabled:opacity-20 shadow-lg shadow-navy/20"
+                    className="bg-navy text-white p-3.5 rounded-2xl active:scale-95 transition-all disabled:opacity-20 shadow-lg shadow-navy/20"
                   >
-                    <Send size={20} />
+                    <Send size={18} />
                   </button>
                 </div>
               ) : (
                 <button 
                   onClick={isLive ? stopLive : startLive}
                   disabled={isConnecting}
-                  className={`w-full ${isLive ? 'bg-red-500 hover:bg-red-600' : 'bg-field-green hover:bg-green-700'} text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 shadow-xl transition-all active:scale-95`}
+                  className={`w-full ${isLive ? 'bg-red-500 hover:bg-red-600' : 'bg-field-green hover:bg-green-700'} text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 shadow-xl transition-all active:scale-95`}
                 >
-                  {isConnecting ? <Loader2 className="animate-spin" /> : (isLive ? <MicOff /> : <Phone />)}
-                  <span className="text-lg">{isConnecting ? (lang === 'en' ? 'Connecting...' : 'Connexion...') : (isLive ? (lang === 'en' ? 'End Call' : 'Terminer') : (lang === 'en' ? 'Start Voice Agent' : 'Démarrer'))}</span>
+                  {isConnecting ? <Loader2 className="animate-spin" size={20} /> : (isLive ? <MicOff size={20} /> : <Phone size={20} />)}
+                  <span className="text-base">{isConnecting ? (lang === 'en' ? 'Connecting...' : 'Connexion...') : (isLive ? (lang === 'en' ? 'End Call' : 'Terminer') : (lang === 'en' ? 'Start Voice Agent' : 'Démarrer'))}</span>
                 </button>
               )}
             </div>
@@ -361,7 +364,7 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
 
         <button 
           onClick={() => setIsOpen(!isOpen)}
-          className="w-14 h-14 lg:w-16 lg:h-16 bg-navy text-white rounded-2xl flex items-center justify-center shadow-[0_20px_50px_-10px_rgba(15,23,42,0.4)] hover:scale-110 transition-transform active:scale-90 pointer-events-auto"
+          className="w-14 h-14 lg:w-16 lg:h-16 bg-navy text-white rounded-2xl flex items-center justify-center shadow-[0_15px_30px_-5px_rgba(15,23,42,0.4)] hover:scale-110 transition-transform active:scale-90 pointer-events-auto"
         >
           {isOpen ? <X size={24} /> : <MessageCircle size={28} />}
         </button>
@@ -370,8 +373,7 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
   );
 };
 
-// --- Localization Content ---
-
+// --- Rest of the App code stays exactly the same ---
 const content = {
   en: {
     nav: { home: "Home", how: "How It Works", services: "Services", results: "Results", about: "About", book: "Book a Call" },
