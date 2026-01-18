@@ -71,11 +71,18 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
     }
   }, [messages, isTyping, isOpen]);
 
-  // Reset chat when language changes or mode changes to prevent context mismatch
+  // Reset chat when language changes or window reopens
   useEffect(() => {
     chatRef.current = null;
     setMessages([]);
   }, [lang, isOpen]);
+
+  const getApiKey = () => {
+    // Check various common ways the key might be injected in production
+    const key = process.env.API_KEY || (import.meta as any).env?.VITE_API_KEY;
+    if (!key || key === 'undefined' || key === 'null') return null;
+    return key;
+  };
 
   const handleSendMessage = async () => {
     if (!inputText.trim() || isTyping) return;
@@ -85,17 +92,14 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
     setIsTyping(true);
 
     try {
-      // Use the injected environment variable directly
-      const apiKey = process.env.API_KEY;
-      if (!apiKey) {
-        throw new Error("Missing API_KEY");
-      }
+      const apiKey = getApiKey();
+      if (!apiKey) throw new Error("API Key configuration missing");
 
       const ai = new GoogleGenAI({ apiKey });
       
       if (!chatRef.current) {
         chatRef.current = ai.chats.create({
-          model: 'gemini-3-flash-preview', // Updated to the correct recommended model
+          model: 'gemini-3-pro-preview', // High-quality reasoning for sales agent
           config: { 
             systemInstruction,
             temperature: 0.7,
@@ -104,14 +108,14 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
       }
       
       const response = await chatRef.current.sendMessage({ message: userMsg });
-      const text = response.text || (lang === 'en' ? "I've noted that down for our scheduled call." : "C'est noté pour notre appel prévu.");
+      const text = response.text || (lang === 'en' ? "I've noted that down. Let's talk more on our call." : "C'est noté. Parlons-en davantage lors de notre appel.");
       
       setMessages(prev => [...prev, { role: 'ai', text }]);
     } catch (err: any) {
       console.error("Chat API Error:", err);
       const errorText = lang === 'en' 
-        ? "I'm experiencing a temporary connection issue. Please feel free to book your session directly using the button above." 
-        : "Je rencontre un problème de connexion temporaire. N'hésitez pas à réserver votre session directement via le bouton ci-dessus.";
+        ? "I'm having a brief connection issue. Please use the button at the top to book directly!" 
+        : "Je rencontre un petit souci de connexion. Utilisez le bouton en haut pour réserver directement !";
       setMessages(prev => [...prev, { role: 'ai', text: errorText }]);
       chatRef.current = null;
     } finally {
@@ -174,9 +178,9 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
   };
 
   const startLive = async () => {
-    const apiKey = process.env.API_KEY;
+    const apiKey = getApiKey();
     if (!apiKey) {
-      alert("System configuration error. Please try again later.");
+      alert("Configuration is still loading. Please try again in a moment.");
       return;
     }
 
@@ -198,7 +202,7 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
         model: 'gemini-2.5-flash-native-audio-preview-12-2025',
         config: {
           responseModalities: [Modality.AUDIO],
-          systemInstruction: systemInstruction + " Start by greeting the user naturally in " + (lang === 'en' ? 'English' : 'French') + ".",
+          systemInstruction: systemInstruction + " Be natural and concise.",
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } }
           },
@@ -241,7 +245,7 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
           },
           onclose: () => stopLive(),
           onerror: (e) => {
-            console.error("Live Session Error:", e);
+            console.error("Live Error:", e);
             stopLive();
           },
         }
@@ -249,9 +253,9 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
 
       sessionRef.current = await sessionPromise;
     } catch (err) {
-      console.error("Voice Connection Failed:", err);
+      console.error("Voice Failed:", err);
       stopLive();
-      alert(lang === 'en' ? "Could not start voice session. Please ensure your microphone is enabled and try again." : "Impossible de démarrer la session vocale. Veuillez vérifier votre micro et réessayer.");
+      alert(lang === 'en' ? "Could not start voice session. Check microphone permissions." : "Erreur vocale. Vérifiez les permissions du micro.");
     }
   };
 
@@ -285,7 +289,6 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
                      setMode(mode === 'chat' ? 'voice' : 'chat');
                   }}
                   className={`p-2 lg:p-2.5 rounded-xl transition-all ${mode === 'voice' ? 'bg-field-green shadow-lg shadow-field-green/40' : 'hover:bg-white/10'}`}
-                  title={mode === 'chat' ? 'Switch to Voice' : 'Switch to Chat'}
                 >
                   {mode === 'chat' ? <Phone size={20}/> : <MessageCircle size={20}/>}
                 </button>
@@ -342,8 +345,8 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
                   </h3>
                   <p className="text-slate-500 text-sm max-w-[220px] leading-relaxed">
                     {isLive 
-                      ? (lang === 'en' ? "I'm ready to schedule our call. Go ahead and tell me about your business." : "Je suis prêt à planifier notre appel. Parlez-moi de votre entreprise.")
-                      : (lang === 'en' ? "Talk hands-free while you're on site. I'll help you book a session." : "Parlez en mains libres. Je vous aiderai à réserver une session.")}
+                      ? (lang === 'en' ? "I'm ready. Go ahead and tell me about your business." : "Je vous écoute. Parlez-moi de votre entreprise.")
+                      : (lang === 'en' ? "Talk hands-free. I'll help you book a session." : "Parlez en mains libres. Je vous aiderai à réserver.")}
                   </p>
                 </div>
               )}
@@ -384,7 +387,7 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
 
         <button 
           onClick={() => setIsOpen(!isOpen)}
-          className="w-14 h-14 lg:w-16 lg:h-16 bg-navy text-white rounded-2xl flex items-center justify-center shadow-[0_15px_30px_-5px_rgba(15,23,42,0.4)] hover:scale-110 transition-transform active:scale-90 pointer-events-auto"
+          className="w-14 h-14 lg:w-16 lg:h-16 bg-navy text-white rounded-2xl flex items-center justify-center shadow-2xl hover:scale-110 transition-transform active:scale-90 pointer-events-auto"
         >
           {isOpen ? <X size={24} /> : <MessageCircle size={28} />}
         </button>
@@ -495,7 +498,7 @@ const content = {
     },
     ctaFinal: {
       title: "Prêt à remplir votre calendrier ?",
-      desc: "Arrêtez de perdre des contrats. Laissez-nous gérer la technologie pendant que vous gérez les camions."
+      desc: "Arrêtez de perdre des contrats. Laissez-nous gérér la technologie pendant que vous gérez les camions."
     }
   }
 };
