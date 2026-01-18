@@ -25,6 +25,7 @@ import {
   CalendarDays
 } from 'lucide-react';
 import { GoogleGenAI, LiveServerMessage, Modality, Chat, GenerateContentResponse } from '@google/genai';
+import { Analytics } from '@vercel/analytics/react';
 
 // Global constants - Used in backend/AI context
 const BOOKING_URL = "https://calendar.google.com/calendar/u/0?cid=amFjcXVlc21hdG9rYTFAZ21haWwuY29t";
@@ -818,6 +819,7 @@ export default function App() {
 
       <Footer lang={lang} />
       <AIWidget lang={lang} />
+      <Analytics />
     </div>
   );
 }
