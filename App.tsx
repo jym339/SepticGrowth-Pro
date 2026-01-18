@@ -71,11 +71,11 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
     }
   }, [messages, isTyping, isOpen]);
 
-  // Reset chat when language changes to prevent context mismatch
+  // Reset chat when language changes or mode changes to prevent context mismatch
   useEffect(() => {
     chatRef.current = null;
     setMessages([]);
-  }, [lang]);
+  }, [lang, isOpen]);
 
   const handleSendMessage = async () => {
     if (!inputText.trim() || isTyping) return;
@@ -85,17 +85,17 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
     setIsTyping(true);
 
     try {
-      // In this environment, process.env.API_KEY is the correct way to access the key
+      // Use the injected environment variable directly
       const apiKey = process.env.API_KEY;
       if (!apiKey) {
-        throw new Error("API Key is missing. Please ensure it is set in the environment.");
+        throw new Error("Missing API_KEY");
       }
 
       const ai = new GoogleGenAI({ apiKey });
       
       if (!chatRef.current) {
         chatRef.current = ai.chats.create({
-          model: 'gemini-3-pro-preview',
+          model: 'gemini-3-flash-preview', // Updated to the correct recommended model
           config: { 
             systemInstruction,
             temperature: 0.7,
@@ -103,15 +103,15 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
         });
       }
       
-      const response: GenerateContentResponse = await chatRef.current.sendMessage({ message: userMsg });
-      const text = response.text || (lang === 'en' ? "Got it. I'm noting that down for our call." : "C'est noté pour notre appel.");
+      const response = await chatRef.current.sendMessage({ message: userMsg });
+      const text = response.text || (lang === 'en' ? "I've noted that down for our scheduled call." : "C'est noté pour notre appel prévu.");
       
       setMessages(prev => [...prev, { role: 'ai', text }]);
     } catch (err: any) {
-      console.error("Chat Error:", err);
+      console.error("Chat API Error:", err);
       const errorText = lang === 'en' 
-        ? "I'm having trouble connecting right now. Please try again or book directly using the button above." 
-        : "J'ai du mal à me connecter en ce moment. Veuillez réessayer ou réserver directement via le bouton ci-dessus.";
+        ? "I'm experiencing a temporary connection issue. Please feel free to book your session directly using the button above." 
+        : "Je rencontre un problème de connexion temporaire. N'hésitez pas à réserver votre session directement via le bouton ci-dessus.";
       setMessages(prev => [...prev, { role: 'ai', text: errorText }]);
       chatRef.current = null;
     } finally {
@@ -174,6 +174,12 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
   };
 
   const startLive = async () => {
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      alert("System configuration error. Please try again later.");
+      return;
+    }
+
     const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
     const outputCtx = new AudioContextClass({ sampleRate: 24000 });
     const inputCtx = new AudioContextClass({ sampleRate: 16000 });
@@ -183,12 +189,8 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
     
     audioContextRef.current = outputCtx;
     setIsConnecting(true);
-    setMode('voice');
 
     try {
-      const apiKey = process.env.API_KEY;
-      if (!apiKey) throw new Error("API Key missing");
-
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const ai = new GoogleGenAI({ apiKey });
       
@@ -239,7 +241,7 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
           },
           onclose: () => stopLive(),
           onerror: (e) => {
-            console.error("Live Error:", e);
+            console.error("Live Session Error:", e);
             stopLive();
           },
         }
@@ -247,9 +249,9 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
 
       sessionRef.current = await sessionPromise;
     } catch (err) {
-      console.error("Connection Error:", err);
+      console.error("Voice Connection Failed:", err);
       stopLive();
-      alert(lang === 'en' ? "Failed to connect to the voice agent. Please ensure microphone access is granted." : "Échec de la connexion à l'agent vocal. Veuillez vous assurer que l'accès au micro est autorisé.");
+      alert(lang === 'en' ? "Could not start voice session. Please ensure your microphone is enabled and try again." : "Impossible de démarrer la session vocale. Veuillez vérifier votre micro et réessayer.");
     }
   };
 
