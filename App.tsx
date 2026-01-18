@@ -85,7 +85,13 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
     setIsTyping(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+      // In this environment, process.env.API_KEY is the correct way to access the key
+      const apiKey = process.env.API_KEY;
+      if (!apiKey) {
+        throw new Error("API Key is missing. Please ensure it is set in the environment.");
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
       
       if (!chatRef.current) {
         chatRef.current = ai.chats.create({
@@ -101,9 +107,11 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
       const text = response.text || (lang === 'en' ? "Got it. I'm noting that down for our call." : "C'est noté pour notre appel.");
       
       setMessages(prev => [...prev, { role: 'ai', text }]);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Chat Error:", err);
-      const errorText = lang === 'en' ? 'Sorry, I encountered an error. Please try again.' : 'Désolé, une erreur est survenue. Veuillez réessayer.';
+      const errorText = lang === 'en' 
+        ? "I'm having trouble connecting right now. Please try again or book directly using the button above." 
+        : "J'ai du mal à me connecter en ce moment. Veuillez réessayer ou réserver directement via le bouton ci-dessus.";
       setMessages(prev => [...prev, { role: 'ai', text: errorText }]);
       chatRef.current = null;
     } finally {
@@ -178,8 +186,11 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
     setMode('voice');
 
     try {
+      const apiKey = process.env.API_KEY;
+      if (!apiKey) throw new Error("API Key missing");
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+      const ai = new GoogleGenAI({ apiKey });
       
       const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-12-2025',
@@ -238,7 +249,7 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
     } catch (err) {
       console.error("Connection Error:", err);
       stopLive();
-      alert(lang === 'en' ? "Please allow microphone access to talk to the agent." : "Veuillez autoriser l'accès au micro.");
+      alert(lang === 'en' ? "Failed to connect to the voice agent. Please ensure microphone access is granted." : "Échec de la connexion à l'agent vocal. Veuillez vous assurer que l'accès au micro est autorisé.");
     }
   };
 
