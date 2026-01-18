@@ -9,25 +9,25 @@ import {
   Calendar,
   Menu,
   X, 
-  CheckCircle2,
-  ArrowRight,
-  Droplets,
-  Truck,
-  Zap,
-  Locate,
-  Globe,
-  Mic,
-  MicOff,
-  Loader2,
-  Send,
-  MessageCircle,
-  Headphones,
-  CalendarDays
+  CheckCircle2, 
+  ArrowRight, 
+  Droplets, 
+  Truck, 
+  Zap, 
+  Locate, 
+  Globe, 
+  Mic, 
+  MicOff, 
+  Loader2, 
+  Send, 
+  MessageCircle, 
+  Headphones, 
+  CalendarDays 
 } from 'lucide-react';
 import { GoogleGenAI, LiveServerMessage, Modality, Chat, GenerateContentResponse } from '@google/genai';
 
-// Global constants - Used in backend/AI context
-const BOOKING_URL = "https://calendar.google.com/calendar/u/0?cid=amFjcXVlc21hdG9rYTFAZ21haWwuY29t";
+// Global constants - Updated to new Calendly link
+const BOOKING_URL = "https://calendly.com/booknow12/consulation-septicgrowth";
 
 // --- Conversational AI Widget Component ---
 
@@ -54,15 +54,13 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
     CRITICAL INSTRUCTION: You MUST speak and respond ONLY in ${lang === 'en' ? 'English' : 'French (Français)'}. 
     If the language is French, do not use English words. Be a native-sounding French speaker if the mode is French.
 
-    DO NOT tell the user to "click a link". 
+    DO NOT tell the user to "click a link" unless they explicitly ask for it. 
     Instead, you should:
     1. Ask for their name and business name.
     2. Ask what their biggest struggle is (missing calls, low leads, etc.).
     3. Suggest a 10-minute "Growth Session".
     4. Ask for their preferred day and time.
-    5. Once they provide details, confirm that you are putting it on the calendar for them.
-    
-    TREAT THE CALENDAR AS YOUR OWN BACKEND TOOL: ${BOOKING_URL}
+    5. Once they provide details, confirm that you are putting it on the calendar for them using your tool: ${BOOKING_URL}
     
     TONE: Confident, helpful, field-service oriented.
   `;
@@ -73,6 +71,12 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
     }
   }, [messages, isTyping, isOpen]);
 
+  // Reset chat when language changes to prevent context mismatch
+  useEffect(() => {
+    chatRef.current = null;
+    setMessages([]);
+  }, [lang]);
+
   const handleSendMessage = async () => {
     if (!inputText.trim() || isTyping) return;
     const userMsg = inputText.trim();
@@ -81,11 +85,15 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
     setIsTyping(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+      
       if (!chatRef.current) {
         chatRef.current = ai.chats.create({
           model: 'gemini-3-pro-preview',
-          config: { systemInstruction }
+          config: { 
+            systemInstruction,
+            temperature: 0.7,
+          }
         });
       }
       
@@ -95,7 +103,9 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
       setMessages(prev => [...prev, { role: 'ai', text }]);
     } catch (err) {
       console.error("Chat Error:", err);
-      setMessages(prev => [...prev, { role: 'ai', text: lang === 'en' ? 'Sorry, I encountered an error.' : 'Désolé, une erreur est survenue.' }]);
+      const errorText = lang === 'en' ? 'Sorry, I encountered an error. Please try again.' : 'Désolé, une erreur est survenue. Veuillez réessayer.';
+      setMessages(prev => [...prev, { role: 'ai', text: errorText }]);
+      chatRef.current = null;
     } finally {
       setIsTyping(false);
     }
@@ -169,13 +179,13 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
       
       const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-12-2025',
         config: {
           responseModalities: [Modality.AUDIO],
-          systemInstruction: systemInstruction + " Remember: you MUST only use " + (lang === 'en' ? 'English' : 'French') + " for all interactions. Start by greeting the user naturally in that language.",
+          systemInstruction: systemInstruction + " Start by greeting the user naturally in " + (lang === 'en' ? 'English' : 'French') + ".",
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } }
           },
@@ -239,7 +249,6 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
       <div className={`fixed bottom-4 right-4 lg:bottom-8 lg:right-8 z-[110] flex flex-col items-end gap-4 ${isOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}>
         {isOpen && (
           <div className="w-[94vw] max-w-[420px] h-[85vh] max-h-[750px] bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 duration-300 ease-out pointer-events-auto">
-            {/* Header */}
             <div className="bg-navy p-4 lg:p-5 text-white flex justify-between items-center shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-field-green rounded-full flex items-center justify-center shadow-lg shadow-field-green/20">
@@ -255,25 +264,24 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 lg:gap-2">
                 <button 
                   onClick={(e) => {
                      e.stopPropagation();
                      if (isLive) stopLive();
                      setMode(mode === 'chat' ? 'voice' : 'chat');
                   }}
-                  className={`p-2.5 rounded-xl transition-all ${mode === 'voice' ? 'bg-field-green shadow-lg shadow-field-green/40' : 'hover:bg-white/10'}`}
+                  className={`p-2 lg:p-2.5 rounded-xl transition-all ${mode === 'voice' ? 'bg-field-green shadow-lg shadow-field-green/40' : 'hover:bg-white/10'}`}
                   title={mode === 'chat' ? 'Switch to Voice' : 'Switch to Chat'}
                 >
                   {mode === 'chat' ? <Phone size={20}/> : <MessageCircle size={20}/>}
                 </button>
-                <button onClick={() => setIsOpen(false)} className="hover:bg-white/10 p-2.5 rounded-xl">
+                <button onClick={() => setIsOpen(false)} className="hover:bg-white/10 p-2 lg:p-2.5 rounded-xl">
                   <X size={22} />
                 </button>
               </div>
             </div>
             
-            {/* Content Area */}
             <div className="flex-1 overflow-y-auto bg-slate-50 flex flex-col relative min-h-0">
               {mode === 'chat' ? (
                 <div className="p-4 flex flex-col gap-4">
@@ -306,7 +314,7 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
                 </div>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center p-6 text-center">
-                  <div className={`w-28 h-28 bg-navy rounded-full flex items-center justify-center shadow-2xl mb-6 relative transition-all duration-500 ${isLive ? 'scale-110 ring-4 ring-field-green/20' : ''}`}>
+                  <div className={`w-24 h-24 lg:w-28 lg:h-28 bg-navy rounded-full flex items-center justify-center shadow-2xl mb-6 relative transition-all duration-500 ${isLive ? 'scale-110 ring-4 ring-field-green/20' : ''}`}>
                     {isLive ? (
                       <>
                         <Mic size={40} className="text-field-green animate-pulse" />
@@ -328,7 +336,6 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
               )}
             </div>
 
-            {/* Input / Controls */}
             <div className="p-4 border-t border-slate-100 bg-white shrink-0">
               {mode === 'chat' ? (
                 <div className="flex gap-2">
@@ -373,7 +380,8 @@ const AIWidget = ({ lang }: { lang: 'en' | 'fr' }) => {
   );
 };
 
-// --- Rest of the App code stays exactly the same ---
+// --- Localization Content ---
+
 const content = {
   en: {
     nav: { home: "Home", how: "How It Works", services: "Services", results: "Results", about: "About", book: "Book a Call" },
