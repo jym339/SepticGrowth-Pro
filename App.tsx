@@ -25,6 +25,7 @@ import {
   CalendarDays 
 } from 'lucide-react';
 import { GoogleGenAI, LiveServerMessage, Modality, Chat, GenerateContentResponse } from '@google/genai';
+import { Analytics } from '@vercel/analytics/react';
 
 // Global constants - Updated to new Calendly link
 const BOOKING_URL = "https://calendly.com/booknow12/consulation-septicgrowth";
@@ -842,6 +843,7 @@ export default function App() {
 
       <Footer lang={lang} />
       <AIWidget lang={lang} />
+      <Analytics />
     </div>
   );
 }
