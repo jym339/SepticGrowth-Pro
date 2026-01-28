@@ -1,7 +1,5 @@
 {
   "name": "SepticGrowth Pro",
   "description": "Specialized Marketing for Septic & Well Water Companies",
-  "requestFramePermissions": [
-    "microphone"
-  ]
+  "requestFramePermissions": []
 }
