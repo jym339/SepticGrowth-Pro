@@ -15,7 +15,8 @@ import {
   Truck, 
   Zap, 
   Locate, 
-  Globe
+  Globe,
+  Star
 } from 'lucide-react';
 
 // Global constants - Updated to new Calendly link
@@ -25,7 +26,7 @@ const BOOKING_URL = "https://calendly.com/booknow12/consulation-septicgrowth";
 
 const content = {
   en: {
-    nav: { home: "Home", how: "How It Works", services: "Services", results: "Results", about: "About", book: "Book a Call" },
+    nav: { home: "Home", how: "How It Works", services: "Services", pricing: "Pricing", results: "Results", about: "About", book: "Book a Call" },
     hero: {
       tag: "Exclusive to Septic & Well Services",
       title: "Capture more leads",
@@ -34,6 +35,47 @@ const content = {
       bullets: ["Instant text-back for missed office calls", "24/7 lead capture while you're in the field", "High-converting pages built for service trucks"],
       ctaPrimary: "Book a Free Demo",
       ctaSecondary: "Watch How It Works"
+    },
+    pricing: {
+      title: "Simple, Transparent Pricing",
+      subtitle: "Choose the plan that fits your business stage. No hidden fees, just growth.",
+      setup: "Setup",
+      month: "Month",
+      mostPopular: "Most Popular",
+      cta: "Sign Up Now",
+      tiers: [
+        {
+          name: "Starter",
+          subtitle: "For Small Businesses & Startups",
+          setupPrice: "$1,000",
+          monthlyPrice: "$97",
+          desc: "Get started with a sleek, mobile-friendly website designed to capture leads and improve your online presence.",
+          features: [
+            "3-Page Website",
+            "Desktop and Mobile Friendly Site",
+            "On-Page Website SEO",
+            "Contact Form",
+            "Chat Widget",
+            "SMS and Email Automations",
+            "1 Website Edit Per Month"
+          ]
+        },
+        {
+          name: "Growth",
+          subtitle: "For Scaling Businesses & Entrepreneurs",
+          setupPrice: "$2,000",
+          monthlyPrice: "$297",
+          desc: "Scale your business with advanced SEO, automation, and lead management tools to maximize conversions.",
+          features: [
+            "5-Page Website",
+            "Everything in Starter, PLUS:",
+            "Calendar Booking System",
+            "Payment Processing",
+            "Google Review Automation/Widget",
+            "3 Website Edits Per Month"
+          ]
+        }
+      ]
     },
     problem: {
       title: "Field Work is Busy. Sales Shouldn't Be.",
@@ -76,7 +118,7 @@ const content = {
     }
   },
   fr: {
-    nav: { home: "Accueil", how: "Fonctionnement", services: "Services", results: "Résultats", about: "À Propos", book: "Réserver un appel" },
+    nav: { home: "Accueil", how: "Fonctionnement", services: "Services", pricing: "Tarifs", results: "Résultats", about: "À Propos", book: "Réserver un appel" },
     hero: {
       tag: "Exclusif aux Services de Septique et Puits",
       title: "Captez plus de leads",
@@ -85,6 +127,47 @@ const content = {
       bullets: ["Réponse par SMS instantanée pour les appels manqués", "Capture de leads 24/7 pendant que vous êtes sur le terrain", "Pages à haute conversion conçues pour les camions de service"],
       ctaPrimary: "Réserver une démo gratuite",
       ctaSecondary: "Voir comment ça marche"
+    },
+    pricing: {
+      title: "Tarifs Simples et Transparents",
+      subtitle: "Choisissez le plan qui correspond à l'étape de votre entreprise. Pas de frais cachés.",
+      setup: "Installation",
+      month: "Mois",
+      mostPopular: "Plus Populaire",
+      cta: "S'inscrire Maintenant",
+      tiers: [
+        {
+          name: "Starter",
+          subtitle: "Pour Petites Entreprises et Startups",
+          setupPrice: "1 000 $",
+          monthlyPrice: "97 $",
+          desc: "Démarrez avec un site web élégant et optimisé pour mobile, conçu pour capturer des prospects et améliorer votre présence en ligne.",
+          features: [
+            "Site Web de 3 pages",
+            "Site compatible Bureau et Mobile",
+            "SEO sur site Web",
+            "Formulaire de contact",
+            "Widget de Chat",
+            "Automatisations SMS et Email",
+            "1 modification de site par mois"
+          ]
+        },
+        {
+          name: "Growth",
+          subtitle: "Pour Entreprises en Croissance",
+          setupPrice: "2 000 $",
+          monthlyPrice: "297 $",
+          desc: "Développez votre entreprise avec un SEO avancé, des automatisations et des outils de gestion de prospects pour maximiser les conversions.",
+          features: [
+            "Site Web de 5 pages",
+            "Tout ce qui est inclus dans Starter, PLUS :",
+            "Système de réservation de calendrier",
+            "Traitement des paiements",
+            "Widget/Automatisation des avis Google",
+            "3 modifications de site par mois"
+          ]
+        }
+      ]
     },
     problem: {
       title: "Le terrain est occupé. Les ventes ne devraient pas l'être.",
@@ -174,6 +257,7 @@ const Navbar = ({ lang, setLang }: { lang: 'en' | 'fr', setLang: (l: 'en' | 'fr'
           <div className="hidden md:flex items-center space-x-6">
             <a href="#how-it-works" onClick={(e) => onNavClick(e, 'how-it-works')} className="text-sm font-semibold text-slate-600 hover:text-navy transition-colors">{t.how}</a>
             <a href="#services" onClick={(e) => onNavClick(e, 'services')} className="text-sm font-semibold text-slate-600 hover:text-navy transition-colors">{t.services}</a>
+            <a href="#pricing" onClick={(e) => onNavClick(e, 'pricing')} className="text-sm font-semibold text-slate-600 hover:text-navy transition-colors">{t.pricing}</a>
             <a href="#results" onClick={(e) => onNavClick(e, 'results')} className="text-sm font-semibold text-slate-600 hover:text-navy transition-colors">{t.results}</a>
             <a href="#about" onClick={(e) => onNavClick(e, 'about')} className="text-sm font-semibold text-slate-600 hover:text-navy transition-colors">{t.about}</a>
             <LanguageToggle lang={lang} setLang={setLang} />
@@ -200,6 +284,7 @@ const Navbar = ({ lang, setLang }: { lang: 'en' | 'fr', setLang: (l: 'en' | 'fr'
         <div className="md:hidden bg-white border-b border-slate-100 px-4 pt-2 pb-6 space-y-2">
           <a href="#how-it-works" onClick={(e) => onNavClick(e, 'how-it-works')} className="block px-3 py-4 text-base font-semibold text-slate-700 border-b border-slate-50">{t.how}</a>
           <a href="#services" onClick={(e) => onNavClick(e, 'services')} className="block px-3 py-4 text-base font-semibold text-slate-700 border-b border-slate-50">{t.services}</a>
+          <a href="#pricing" onClick={(e) => onNavClick(e, 'pricing')} className="block px-3 py-4 text-base font-semibold text-slate-700 border-b border-slate-50">{t.pricing}</a>
           <div className="pt-4 px-3">
             <a 
               href={BOOKING_URL} 
@@ -320,6 +405,82 @@ const HowItWorks = ({ lang }: { lang: 'en' | 'fr' }) => {
   );
 };
 
+const PricingSection = ({ lang }: { lang: 'en' | 'fr' }) => {
+  const t = content[lang].pricing;
+  return (
+    <section id="pricing" className="py-20 lg:py-24 bg-slate-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl lg:text-4xl font-extrabold text-navy mb-4">{t.title}</h2>
+          <p className="text-base lg:text-lg text-slate-600 max-w-2xl mx-auto">{t.subtitle}</p>
+        </div>
+        
+        <div className="grid md:grid-cols-2 gap-8 lg:gap-12 max-w-5xl mx-auto">
+          {t.tiers.map((tier, i) => (
+            <div 
+              key={i} 
+              className={`relative bg-white p-8 lg:p-10 rounded-3xl border transition-all duration-300 flex flex-col ${
+                i === 1 
+                ? 'border-field-green shadow-[0_20px_50px_-20px_rgba(22,163,74,0.2)] ring-1 ring-field-green/10' 
+                : 'border-slate-100 shadow-sm hover:shadow-md'
+              }`}
+            >
+              {i === 1 && (
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-field-green text-white px-5 py-1.5 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                  <Star size={14} />
+                  {t.mostPopular}
+                </div>
+              )}
+              
+              <div className="mb-8">
+                <h3 className="text-2xl font-black text-navy mb-2">{tier.name}</h3>
+                <p className="text-slate-500 text-sm font-medium">{tier.subtitle}</p>
+              </div>
+
+              <div className="mb-8 space-y-2">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl lg:text-5xl font-black text-navy">{tier.setupPrice}</span>
+                  <span className="text-slate-400 font-bold uppercase text-xs tracking-wider">{t.setup} +</span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl lg:text-3xl font-black text-field-green">{tier.monthlyPrice}</span>
+                  <span className="text-slate-400 font-bold uppercase text-xs tracking-wider">/ {t.month}</span>
+                </div>
+              </div>
+
+              <p className="text-slate-600 text-sm mb-8 leading-relaxed font-medium">
+                {tier.desc}
+              </p>
+
+              <div className="flex-1 space-y-4 mb-10">
+                {tier.features.map((feature, idx) => (
+                  <div key={idx} className="flex items-start gap-3">
+                    <CheckCircle2 size={18} className={`${i === 1 ? 'text-field-green' : 'text-navy'} shrink-0 mt-0.5`} />
+                    <span className={`text-sm ${idx === 1 && i === 1 ? 'font-bold text-navy' : 'text-slate-700'}`}>{feature}</span>
+                  </div>
+                ))}
+              </div>
+
+              <a 
+                href={BOOKING_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`w-full py-4 px-6 rounded-2xl font-black text-center transition-all flex items-center justify-center gap-2 ${
+                  i === 1 
+                  ? 'bg-field-green text-white hover:bg-green-700 shadow-lg shadow-field-green/20 active:scale-95' 
+                  : 'bg-navy text-white hover:bg-slate-800 shadow-lg shadow-navy/10 active:scale-95'
+                }`}
+              >
+                {t.cta} <ArrowRight size={18} />
+              </a>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const Services = ({ lang }: { lang: 'en' | 'fr' }) => {
   const t = content[lang].services;
   const icons = [<Phone />, <Droplets />, <MessageSquare />, <TrendingUp />, <Calendar />, <Truck />];
@@ -393,6 +554,7 @@ const Footer = ({ lang }: { lang: 'en' | 'fr' }) => {
             <ul className="space-y-4 text-sm font-medium">
               <li><a href="#top" onClick={(e) => handleGlobalNavClick(e, 'top')} className="hover:text-field-green transition-colors">{nav.home}</a></li>
               <li><a href="#how-it-works" onClick={(e) => handleGlobalNavClick(e, 'how-it-works')} className="hover:text-field-green transition-colors">{nav.how}</a></li>
+              <li><a href="#pricing" onClick={(e) => handleGlobalNavClick(e, 'pricing')} className="hover:text-field-green transition-colors">{nav.pricing}</a></li>
             </ul>
           </div>
           <div>
@@ -447,6 +609,8 @@ export default function App() {
           </div>
         </div>
       </section>
+
+      <PricingSection lang={lang} />
 
       <About lang={lang} />
       
