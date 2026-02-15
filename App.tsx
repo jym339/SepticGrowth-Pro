@@ -110,7 +110,7 @@ const content = {
     },
     footer: {
       desc: "The only marketing partner dedicated exclusively to helping septic and well water service companies.",
-      rights: "© 2024 SepticGrowth Pro. Specialized Lead Systems for Field Service Pros."
+      rights: "© 2026 SepticGrowth Pro. Specialized Lead Systems for Field Service Pros."
     },
     ctaFinal: {
       title: "Ready to fill your schedule?",
@@ -202,7 +202,7 @@ const content = {
     },
     footer: {
       desc: "Le seul partenaire marketing dédié exclusivement aux entreprises de fosses septiques et d'eau de puits.",
-      rights: "© 2024 SepticGrowth Pro. Systèmes de leads spécialisés pour les pros du terrain."
+      rights: "© 2026 SepticGrowth Pro. Systèmes de leads spécialisés pour les pros du terrain."
     },
     ctaFinal: {
       title: "Prêt à remplir votre calendrier ?",
@@ -560,7 +560,7 @@ const Footer = ({ lang }: { lang: 'en' | 'fr' }) => {
           <div>
             <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-[10px]">Contact</h4>
             <ul className="space-y-4 text-sm font-medium">
-              <li>septicgrowth4@gmail.com</li>
+              <li>info@septicgrowth.net</li>
             </ul>
           </div>
         </div>
