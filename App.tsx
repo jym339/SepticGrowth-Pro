@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Phone, 
   Clock, 
@@ -16,25 +16,71 @@ import {
   Zap, 
   Locate, 
   Globe,
-  Star
+  Star,
+  Layout,
+  Cpu,
+  Smartphone,
+  BarChart3,
+  Bell,
+  Layers,
+  MousePointerClick,
+  MailCheck,
+  ZapOff,
+  UserCheck
 } from 'lucide-react';
 
-// Global constants - Updated to new Calendly link
+// Global constants
 const BOOKING_URL = "https://calendly.com/booknow12/consulation-septicgrowth";
 
 // --- Localization Content ---
 
 const content = {
   en: {
-    nav: { home: "Home", how: "How It Works", services: "Services", pricing: "Pricing", results: "Results", about: "About", book: "Book a Call" },
+    nav: { home: "Home", features: "Features", how: "Process", pricing: "Pricing", results: "Results", about: "About", book: "Book a Call" },
     hero: {
-      tag: "Exclusive to Septic & Well Services",
-      title: "Capture more leads",
-      titleAccent: "automatically.",
-      desc: "We help septic pumping and well water companies in the U.S. & Canada secure more local jobs with simple automated systems that never let a lead slip through the cracks.",
-      bullets: ["Instant text-back for missed office calls", "24/7 lead capture while you're in the field", "High-converting pages built for service trucks"],
-      ctaPrimary: "Book a Free Demo",
-      ctaSecondary: "Watch How It Works"
+      tag: "AI-Powered Growth for Septic & Well Services",
+      title: "Scale your fleet",
+      titleAccent: "with AI automation.",
+      desc: "Stop chasing leads and start closing jobs. We build high-converting systems, AI chatbots, and automated workflows designed specifically for the field service industry.",
+      bullets: ["AI Chatbots for 24/7 engagement", "Automated CRM & Lead Management", "Conversion-focused modern design"],
+      ctaPrimary: "Sign Up Now",
+      ctaSecondary: "View Features"
+    },
+    features: {
+      title: "The All-In-One Growth Engine",
+      subtitle: "Everything you need to dominate your local market, automated and optimized.",
+      sections: [
+        {
+          id: "conversion",
+          category: "Conversion & Design",
+          items: [
+            { icon: <MousePointerClick />, title: "Optimized Forms & Pages", desc: "High-converting designs that encourage visitors to take action immediately." },
+            { icon: <Layout />, title: "Modern UI/UX", desc: "Beautifully designed interfaces that enhance user experience and trust." },
+            { icon: <Zap />, title: "Fast & Responsive", desc: "Optimized for speed and flawless performance across all mobile devices." },
+            { icon: <UserCheck />, title: "Custom Branding", desc: "Tailored design that reflects your specific brand identity and vision." }
+          ]
+        },
+        {
+          id: "automation",
+          category: "AI & Intelligence",
+          items: [
+            { icon: <MessageSquare />, title: "AI-Powered Chatbots", desc: "Engage visitors 24/7, collect customer info, and guide them through the journey." },
+            { icon: <Cpu />, title: "AI Personalization", desc: "Tailored website experiences based on specific user behavior and location." },
+            { icon: <MailCheck />, title: "Automated Follow-Ups", desc: "Nurture leads with scheduled email sequences and personalized messaging." },
+            { icon: <Layers />, title: "CRM Workflows", desc: "Automate lead scoring, customer segmentation, and service follow-ups." }
+          ]
+        },
+        {
+          id: "control",
+          category: "Management & Control",
+          items: [
+            { icon: <Smartphone />, title: "One-Touch CRM Access", desc: "Manage leads and customer interactions directly from your mobile device." },
+            { icon: <BarChart3 />, title: "Live Analytics & Reports", desc: "Monitor traffic, lead generation, and performance right from your phone." },
+            { icon: <Bell />, title: "Instant Lead Notifications", desc: "Get alerts the second someone interacts with your forms or chatbot." },
+            { icon: <ZapOff />, title: "Real-Time Updates", desc: "Easily update content, add pages, and make changes on the fly." }
+          ]
+        }
+      ]
     },
     pricing: {
       title: "Simple, Transparent Pricing",
@@ -51,12 +97,11 @@ const content = {
           monthlyPrice: "$97",
           desc: "Get started with a sleek, mobile-friendly website designed to capture leads and improve your online presence.",
           features: [
-            "3-Page Website",
-            "Desktop and Mobile Friendly Site",
-            "On-Page Website SEO",
-            "Contact Form",
-            "Chat Widget",
-            "SMS and Email Automations",
+            "3-Page Responsive Website",
+            "On-Page SEO Optimization",
+            "AI-Powered Chat Widget",
+            "Contact Form Automation",
+            "SMS & Email Notifications",
             "1 Website Edit Per Month"
           ]
         },
@@ -65,68 +110,73 @@ const content = {
           subtitle: "For Scaling Businesses & Entrepreneurs",
           setupPrice: "$2,000",
           monthlyPrice: "$297",
-          desc: "Scale your business with advanced SEO, automation, and lead management tools to maximize conversions.",
+          desc: "Scale your business with advanced SEO, full CRM automation, and lead management tools to maximize conversions.",
           features: [
-            "5-Page Website",
-            "Everything in Starter, PLUS:",
+            "5-Page Premium Website",
+            "Full CRM Workflow Integration",
+            "AI Personalization Features",
             "Calendar Booking System",
-            "Payment Processing",
-            "Google Review Automation/Widget",
+            "Automated Google Review Widget",
             "3 Website Edits Per Month"
           ]
         }
       ]
     },
-    problem: {
-      title: "Field Work is Busy. Sales Shouldn't Be.",
-      quote: "The hardest part of the job shouldn't be catching the phone.",
-      items: [
-        { title: "Missing Calls on the Job", desc: "When you're in a tank, you can't answer. That's money lost to the next guy on Google." },
-        { title: "Low Local Visibility", desc: "If you aren't showing up in emergencies, you're invisible to 90% of your market." },
-        { title: "Slow Lead Follow-up", desc: "If you don't reply in 5 minutes, 80% of customers call a competitor." },
-        { title: "No System for Tracking", desc: "Losing track of estimate calls makes it impossible to follow up and close." }
-      ]
-    },
-    how: {
-      title: "How We Get You More Jobs",
-      subtitle: "Three simple steps to a more profitable business.",
-      steps: [
-        { step: "01", title: "Plug & Play Setup", desc: "We set up your local numbers and landing page. You don't have to touch a thing." },
-        { step: "02", title: "Automated Leads", desc: "Every time you're on a job and miss a call, our system starts the conversation automatically." },
-        { step: "03", title: "More Booked Jobs", desc: "With better responsiveness, your schedule stays full year-round." }
-      ]
-    },
-    services: {
-      title: "Our Service Stack",
-      subtitle: "Specific tools designed for the unique needs of septic and well service teams.",
-      items: [
-        { title: "Missed Call Text Back", desc: "Immediately capture every missed call via text, keeping homeowners from moving on." },
-        { title: "Niche Landing Pages", desc: "High-speed, mobile-optimized sites built specifically for the industry." },
-        { title: "24/7 Automated Capture", desc: "Systems that handle inbound interest while you're in the field." },
-        { title: "Local Optimization", desc: "Show up first when people search for emergency repairs." },
-        { title: "Lead Management", desc: "A dead-simple app to see all your leads and messages in one place." },
-        { title: "Route Lead Tracking", desc: "See where your calls are coming from to optimize your service areas." }
-      ]
-    },
     footer: {
-      desc: "The only marketing partner dedicated exclusively to helping septic and well water service companies.",
+      desc: "The only marketing partner dedicated exclusively to helping septic and well water service companies scale through technology.",
       rights: "© 2026 SepticGrowth Pro. Specialized Lead Systems for Field Service Pros."
     },
     ctaFinal: {
-      title: "Ready to fill your schedule?",
+      title: "Ready to automate your growth?",
       desc: "Stop losing jobs to the competition. Let us handle the tech while you handle the trucks."
     }
   },
   fr: {
-    nav: { home: "Accueil", how: "Fonctionnement", services: "Services", pricing: "Tarifs", results: "Résultats", about: "À Propos", book: "Réserver un appel" },
+    nav: { home: "Accueil", features: "Fonctions", how: "Processus", pricing: "Tarifs", results: "Résultats", about: "À Propos", book: "Réserver un appel" },
     hero: {
-      tag: "Exclusif aux Services de Septique et Puits",
-      title: "Captez plus de leads",
-      titleAccent: "automatiquement.",
-      desc: "Nous aidons les entreprises de pompage de fosses septiques et d'eau de puits aux États-Unis et au Canada à obtenir plus de contrats locaux grâce à des systèmes automatisés simples.",
-      bullets: ["Réponse par SMS instantanée pour les appels manqués", "Capture de leads 24/7 pendant que vous êtes sur le terrain", "Pages à haute conversion conçues pour les camions de service"],
-      ctaPrimary: "Réserver une démo gratuite",
-      ctaSecondary: "Voir comment ça marche"
+      tag: "Croissance par IA pour les Services Septiques",
+      title: "Développez votre flotte",
+      titleAccent: "avec l'IA.",
+      desc: "Arrêtez de courir après les leads. Nous construisons des systèmes à haute conversion, des chatbots IA et des flux automatisés conçus pour le terrain.",
+      bullets: ["Chatbots IA actifs 24/7", "CRM et gestion automatisée", "Design moderne axé conversion"],
+      ctaPrimary: "S'inscrire Maintenant",
+      ctaSecondary: "Voir Fonctions"
+    },
+    features: {
+      title: "Le Moteur de Croissance Complet",
+      subtitle: "Tout ce dont vous avez besoin pour dominer votre marché local, automatisé et optimisé.",
+      sections: [
+        {
+          id: "conversion",
+          category: "Conversion & Design",
+          items: [
+            { icon: <MousePointerClick />, title: "Formulaires Optimisés", desc: "Designs à haute conversion encourageant l'action immédiate des visiteurs." },
+            { icon: <Layout />, title: "UI/UX Moderne", desc: "Interfaces magnifiques qui renforcent l'expérience utilisateur et la confiance." },
+            { icon: <Zap />, title: "Rapide & Réactif", desc: "Optimisé pour la vitesse et une performance parfaite sur tous les mobiles." },
+            { icon: <UserCheck />, title: "Branding Personnalisé", desc: "Design sur mesure reflétant l'identité et la vision de votre marque." }
+          ]
+        },
+        {
+          id: "automation",
+          category: "IA & Intelligence",
+          items: [
+            { icon: <MessageSquare />, title: "Chatbots IA", desc: "Engagez les visiteurs 24/7, collectez les infos et guidez-les dans leur parcours." },
+            { icon: <Cpu />, title: "Personnalisation IA", desc: "Expériences web sur mesure basées sur le comportement et la localisation." },
+            { icon: <MailCheck />, title: "Suivis Automatisés", desc: "Nourrissez les prospects avec des séquences emails et messages personnalisés." },
+            { icon: <Layers />, title: "Flux de Travail CRM", desc: "Automatisez le scoring des leads, la segmentation et les suivis de service." }
+          ]
+        },
+        {
+          id: "control",
+          category: "Gestion & Contrôle",
+          items: [
+            { icon: <Smartphone />, title: "Accès CRM Mobile", desc: "Gérez vos leads et interactions clients directement depuis votre téléphone." },
+            { icon: <BarChart3 />, title: "Analyses en Direct", desc: "Surveillez le trafic, les leads et la performance en temps réel sur mobile." },
+            { icon: <Bell />, title: "Notifications Instantanées", desc: "Soyez alerté dès qu'un prospect interagit avec vos formulaires ou chatbot." },
+            { icon: <ZapOff />, title: "Mises à Jour Directes", desc: "Mettez à jour le contenu et ajoutez des pages facilement et instantanément." }
+          ]
+        }
+      ]
     },
     pricing: {
       title: "Tarifs Simples et Transparents",
@@ -138,18 +188,17 @@ const content = {
       tiers: [
         {
           name: "Starter",
-          subtitle: "Pour Petites Entreprises et Startups",
+          subtitle: "Pour Petites Entreprises",
           setupPrice: "1 000 $",
           monthlyPrice: "97 $",
-          desc: "Démarrez avec un site web élégant et optimisé pour mobile, conçu pour capturer des prospects et améliorer votre présence en ligne.",
+          desc: "Démarrez avec un site web élégant et optimisé pour mobile, conçu pour capturer des prospects.",
           features: [
-            "Site Web de 3 pages",
-            "Site compatible Bureau et Mobile",
-            "SEO sur site Web",
-            "Formulaire de contact",
-            "Widget de Chat",
-            "Automatisations SMS et Email",
-            "1 modification de site par mois"
+            "Site Web Réactif 3 Pages",
+            "Optimisation SEO sur site",
+            "Widget de Chat IA",
+            "Automatisation de Formulaire",
+            "Notifications SMS & Email",
+            "1 Modification par Mois"
           ]
         },
         {
@@ -157,55 +206,24 @@ const content = {
           subtitle: "Pour Entreprises en Croissance",
           setupPrice: "2 000 $",
           monthlyPrice: "297 $",
-          desc: "Développez votre entreprise avec un SEO avancé, des automatisations et des outils de gestion de prospects pour maximiser les conversions.",
+          desc: "Développez votre entreprise avec un SEO avancé, une automatisation CRM complète et des outils de gestion.",
           features: [
-            "Site Web de 5 pages",
-            "Tout ce qui est inclus dans Starter, PLUS :",
-            "Système de réservation de calendrier",
-            "Traitement des paiements",
-            "Widget/Automatisation des avis Google",
-            "3 modifications de site par mois"
+            "Site Web Premium 5 Pages",
+            "Intégration Flux CRM",
+            "Fonctions Personnalisation IA",
+            "Système de Réservation",
+            "Widget d'Avis Automatisé",
+            "3 Modifications par Mois"
           ]
         }
       ]
     },
-    problem: {
-      title: "Le terrain est occupé. Les ventes ne devraient pas l'être.",
-      quote: "La partie la plus difficile ne devrait pas être de répondre au téléphone.",
-      items: [
-        { title: "Appels manqués en service", desc: "Quand vous êtes dans une fosse, vous ne pouvez pas répondre. C'est de l'argent perdu au profit du voisin." },
-        { title: "Faible visibilité locale", desc: "Si vous n'apparaissez pas lors d'urgences, vous êtes invisible pour 90% de votre marché." },
-        { title: "Suivi trop lent", desc: "Si vous ne répondez pas en 5 minutes, 80% des clients appellent un concurrent." },
-        { title: "Aucun système de suivi", desc: "Perdre la trace des demandes de devis rend le suivi et la clôture impossibles." }
-      ]
-    },
-    how: {
-      title: "Comment nous vous trouvons des contrats",
-      subtitle: "Trois étapes simples vers une entreprise plus rentable.",
-      steps: [
-        { step: "01", title: "Installation Clé en Main", desc: "Nous configurons vos numéros locaux et votre page. Vous n'avez rien à faire." },
-        { step: "02", title: "Leads Automatisés", desc: "Chaque fois que vous manquez un appel, notre système entame la conversation automatiquement." },
-        { step: "03", title: "Plus de Contrats", desc: "Avec une meilleure réactivité, votre emploi du temps reste plein toute l'année." }
-      ]
-    },
-    services: {
-      title: "Notre Gamme de Services",
-      subtitle: "Des outils spécifiques conçus pour les besoins uniques des services septiques.",
-      items: [
-        { title: "SMS suite à Appel Manqué", desc: "Capturez immédiatement chaque appel manqué par SMS, empêchant les clients de partir." },
-        { title: "Pages de Destination de Niche", desc: "Sites rapides et optimisés pour mobile, conçus spécifiquement pour l'industrie." },
-        { title: "Capture de Leads 24/7", desc: "Des systèmes gérant l'intérêt entrant pendant que vous êtes sur le terrain." },
-        { title: "Optimisation Locale", desc: "Apparaissez en premier lors des recherches de réparations d'urgence." },
-        { title: "Gestion des Leads", desc: "Une application ultra-simple pour voir tous vos leads et messages en un seul endroit." },
-        { title: "Suivi des Itinéraires", desc: "Voyez d'où proviennent vos appels pour optimiser vos zones de service." }
-      ]
-    },
     footer: {
-      desc: "Le seul partenaire marketing dédié exclusivement aux entreprises de fosses septiques et d'eau de puits.",
+      desc: "Le seul partenaire marketing dédié exclusivement à la croissance technologique des services septiques.",
       rights: "© 2026 SepticGrowth Pro. Systèmes de leads spécialisés pour les pros du terrain."
     },
     ctaFinal: {
-      title: "Prêt à remplir votre calendrier ?",
+      title: "Prêt à automatiser votre croissance ?",
       desc: "Arrêtez de perdre des contrats. Laissez-nous gérér la technologie pendant que vous gérez les camions."
     }
   }
@@ -255,8 +273,7 @@ const Navbar = ({ lang, setLang }: { lang: 'en' | 'fr', setLang: (l: 'en' | 'fr'
           </div>
           
           <div className="hidden md:flex items-center space-x-6">
-            <a href="#how-it-works" onClick={(e) => onNavClick(e, 'how-it-works')} className="text-sm font-semibold text-slate-600 hover:text-navy transition-colors">{t.how}</a>
-            <a href="#services" onClick={(e) => onNavClick(e, 'services')} className="text-sm font-semibold text-slate-600 hover:text-navy transition-colors">{t.services}</a>
+            <a href="#features" onClick={(e) => onNavClick(e, 'features')} className="text-sm font-semibold text-slate-600 hover:text-navy transition-colors">{t.features}</a>
             <a href="#pricing" onClick={(e) => onNavClick(e, 'pricing')} className="text-sm font-semibold text-slate-600 hover:text-navy transition-colors">{t.pricing}</a>
             <a href="#results" onClick={(e) => onNavClick(e, 'results')} className="text-sm font-semibold text-slate-600 hover:text-navy transition-colors">{t.results}</a>
             <a href="#about" onClick={(e) => onNavClick(e, 'about')} className="text-sm font-semibold text-slate-600 hover:text-navy transition-colors">{t.about}</a>
@@ -282,8 +299,7 @@ const Navbar = ({ lang, setLang }: { lang: 'en' | 'fr', setLang: (l: 'en' | 'fr'
 
       {isOpen && (
         <div className="md:hidden bg-white border-b border-slate-100 px-4 pt-2 pb-6 space-y-2">
-          <a href="#how-it-works" onClick={(e) => onNavClick(e, 'how-it-works')} className="block px-3 py-4 text-base font-semibold text-slate-700 border-b border-slate-50">{t.how}</a>
-          <a href="#services" onClick={(e) => onNavClick(e, 'services')} className="block px-3 py-4 text-base font-semibold text-slate-700 border-b border-slate-50">{t.services}</a>
+          <a href="#features" onClick={(e) => onNavClick(e, 'features')} className="block px-3 py-4 text-base font-semibold text-slate-700 border-b border-slate-50">{t.features}</a>
           <a href="#pricing" onClick={(e) => onNavClick(e, 'pricing')} className="block px-3 py-4 text-base font-semibold text-slate-700 border-b border-slate-50">{t.pricing}</a>
           <div className="pt-4 px-3">
             <a 
@@ -301,105 +317,36 @@ const Navbar = ({ lang, setLang }: { lang: 'en' | 'fr', setLang: (l: 'en' | 'fr'
   );
 };
 
-const Hero = ({ lang }: { lang: 'en' | 'fr' }) => {
-  const t = content[lang].hero;
+const FeatureSection = ({ lang }: { lang: 'en' | 'fr' }) => {
+  const t = content[lang].features;
   return (
-    <section className="relative pt-32 pb-16 lg:pt-48 lg:pb-32 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 bg-field-green/10 text-field-green px-4 py-2 rounded-full text-xs lg:text-sm font-bold mb-6">
-            <ShieldCheck size={16} />
-            <span>{t.tag}</span>
-          </div>
-          <h1 className="text-4xl lg:text-7xl font-extrabold text-navy leading-[1.1] mb-6">
-            {t.title} <span className="text-field-green">{t.titleAccent}</span>
-          </h1>
-          <p className="text-lg lg:text-xl text-slate-600 mb-8 leading-relaxed max-w-2xl">
-            {t.desc}
-          </p>
-          
-          <ul className="space-y-3 lg:space-y-4 mb-10">
-            {t.bullets.map((item, i) => (
-              <li key={i} className="flex items-center gap-3 text-base lg:text-lg font-medium text-slate-700">
-                <CheckCircle2 className="text-field-green shrink-0" size={22} />
-                {item}
-              </li>
-            ))}
-          </ul>
-
-          <div className="flex flex-col sm:flex-row gap-4">
-            <a 
-              href={BOOKING_URL} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="bg-navy text-white px-8 py-4 lg:py-5 rounded-xl font-bold text-lg hover:bg-slate-800 transition-all shadow-xl shadow-navy/20 flex items-center justify-center gap-2 group"
-            >
-              {t.ctaPrimary} <ArrowRight className="group-hover:translate-x-1 transition-transform" />
-            </a>
-            <button className="bg-white text-navy border-2 border-slate-200 px-8 py-4 lg:py-5 rounded-xl font-bold text-lg hover:border-navy transition-all flex items-center justify-center gap-2">
-              {t.ctaSecondary}
-            </button>
-          </div>
-        </div>
-      </div>
-      <div className="absolute top-0 right-0 w-2/5 h-full hidden lg:block -z-10">
-          <img 
-            src="https://images.unsplash.com/photo-1585914641050-fa9883c4e21c?auto=format&fit=crop&q=80&w=1200" 
-            alt="Service Truck" 
-            className="w-full h-full object-cover rounded-l-[100px]"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-white via-white/40 to-transparent"></div>
-      </div>
-    </section>
-  );
-}
-
-const ProblemSection = ({ lang }: { lang: 'en' | 'fr' }) => {
-  const t = content[lang].problem;
-  const icons = [<Phone className="text-red-500" />, <Locate className="text-red-500" />, <Clock className="text-red-500" />, <Zap className="text-red-500" />];
-
-  return (
-    <section className="py-20 lg:py-24 bg-slate-50">
+    <section id="features" className="py-20 lg:py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-2xl lg:text-3xl font-bold text-navy mb-4">{t.title}</h2>
-          <p className="text-base lg:text-lg text-slate-600 italic">"{t.quote}"</p>
+        <div className="text-center mb-20">
+          <h2 className="text-3xl lg:text-5xl font-black text-navy mb-6">{t.title}</h2>
+          <p className="text-slate-600 max-w-2xl mx-auto text-lg">{t.subtitle}</p>
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-          {t.items.map((p, i) => (
-            <div key={i} className="bg-white p-6 lg:p-8 rounded-2xl border border-slate-100 shadow-sm">
-              <div className="mb-4">{icons[i]}</div>
-              <h3 className="text-lg lg:text-xl font-bold text-navy mb-3">{p.title}</h3>
-              <p className="text-slate-600 text-sm leading-relaxed">{p.desc}</p>
+        
+        {t.sections.map((section) => (
+          <div key={section.id} className="mb-20 last:mb-0">
+            <div className="flex items-center gap-4 mb-10">
+              <div className="h-px bg-slate-200 flex-1"></div>
+              <h3 className="text-xs uppercase font-black text-slate-400 tracking-[0.2em]">{section.category}</h3>
+              <div className="h-px bg-slate-200 flex-1"></div>
             </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const HowItWorks = ({ lang }: { lang: 'en' | 'fr' }) => {
-  const t = content[lang].how;
-  return (
-    <section id="how-it-works" className="py-20 lg:py-24 bg-navy text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl lg:text-4xl font-extrabold mb-4">{t.title}</h2>
-          <p className="text-slate-400 max-w-xl mx-auto">{t.subtitle}</p>
-        </div>
-        <div className="grid md:grid-cols-3 gap-12 relative">
-          <div className="hidden md:block absolute top-12 left-0 w-full h-0.5 bg-slate-800 z-0"></div>
-          {t.steps.map((item, i) => (
-            <div key={i} className="relative z-10 text-center">
-              <div className="w-20 h-20 bg-field-green rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-black shadow-xl">
-                {item.step}
-              </div>
-              <h3 className="text-xl lg:text-2xl font-bold mb-4">{item.title}</h3>
-              <p className="text-slate-400 leading-relaxed text-sm lg:text-base">{item.desc}</p>
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {section.items.map((item, idx) => (
+                <div key={idx} className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all group">
+                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-navy shadow-sm mb-6 group-hover:bg-field-green group-hover:text-white transition-colors">
+                    {React.cloneElement(item.icon as React.ReactElement, { size: 24 })}
+                  </div>
+                  <h4 className="text-lg font-bold text-navy mb-3">{item.title}</h4>
+                  <p className="text-slate-600 text-sm leading-relaxed">{item.desc}</p>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -481,58 +428,6 @@ const PricingSection = ({ lang }: { lang: 'en' | 'fr' }) => {
   );
 };
 
-const Services = ({ lang }: { lang: 'en' | 'fr' }) => {
-  const t = content[lang].services;
-  const icons = [<Phone />, <Droplets />, <MessageSquare />, <TrendingUp />, <Calendar />, <Truck />];
-  
-  return (
-    <section id="services" className="py-20 lg:py-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl lg:text-4xl font-extrabold text-navy mb-4">{t.title}</h2>
-          <p className="text-base lg:text-lg text-slate-600">{t.subtitle}</p>
-        </div>
-        <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
-          {t.items.map((s, i) => (
-            <div key={i} className="group p-6 lg:p-8 rounded-2xl border border-slate-100 bg-white hover:border-field-green transition-all shadow-sm">
-              <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-navy group-hover:bg-field-green group-hover:text-white transition-all mb-6">
-                {icons[i]}
-              </div>
-              <h4 className="text-lg lg:text-xl font-bold text-navy mb-3">{s.title}</h4>
-              <p className="text-slate-600 text-sm leading-relaxed">{s.desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const About = ({ lang }: { lang: 'en' | 'fr' }) => {
-  const isEn = lang === 'en';
-
-  return (
-    <section id="about" className="py-20 lg:py-24">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center">
-          <h2 className="text-2xl lg:text-3xl font-extrabold text-navy mb-6">{isEn ? "Built Specifically for Septic & Well Pros" : "Conçu spécifiquement pour les pros du septique"}</h2>
-          <p className="text-base lg:text-lg text-slate-600 mb-8 leading-relaxed">
-            {isEn ? "Most agencies serve dentists, lawyers, and florists. We realized the septic and well water industry was being ignored or overcharged for generic services that don't fit the field-service reality." : "La plupart des agences servent des dentistes ou des fleuristes. Nous avons réalisé que l'industrie du septique était ignorée ou surfacturée pour des services génériques inadaptés."}
-          </p>
-          <div className="flex flex-wrap justify-center gap-4 lg:gap-6">
-            <div className="flex items-center gap-2 font-bold text-navy text-sm lg:text-base">
-              <CheckCircle2 className="text-field-green" size={18} /> {isEn ? "100% Niche Focus" : "100% Focus Niche"}
-            </div>
-            <div className="flex items-center gap-2 font-bold text-navy text-sm lg:text-base">
-              <CheckCircle2 className="text-field-green" size={18} /> {isEn ? "No Long Contracts" : "Sans engagement"}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
 const Footer = ({ lang }: { lang: 'en' | 'fr' }) => {
   const t = content[lang].footer;
   const nav = content[lang].nav;
@@ -553,7 +448,7 @@ const Footer = ({ lang }: { lang: 'en' | 'fr' }) => {
             <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-[10px]">Navigation</h4>
             <ul className="space-y-4 text-sm font-medium">
               <li><a href="#top" onClick={(e) => handleGlobalNavClick(e, 'top')} className="hover:text-field-green transition-colors">{nav.home}</a></li>
-              <li><a href="#how-it-works" onClick={(e) => handleGlobalNavClick(e, 'how-it-works')} className="hover:text-field-green transition-colors">{nav.how}</a></li>
+              <li><a href="#features" onClick={(e) => handleGlobalNavClick(e, 'features')} className="hover:text-field-green transition-colors">{nav.features}</a></li>
               <li><a href="#pricing" onClick={(e) => handleGlobalNavClick(e, 'pricing')} className="hover:text-field-green transition-colors">{nav.pricing}</a></li>
             </ul>
           </div>
@@ -579,11 +474,63 @@ export default function App() {
   return (
     <div id="top" className="antialiased selection:bg-field-green selection:text-white bg-white min-h-screen">
       <Navbar lang={lang} setLang={setLang} />
-      <Hero lang={lang} />
-      <ProblemSection lang={lang} />
-      <HowItWorks lang={lang} />
-      <Services lang={lang} />
       
+      {/* Hero Section */}
+      <section className="relative pt-32 pb-16 lg:pt-48 lg:pb-32 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 bg-field-green/10 text-field-green px-4 py-2 rounded-full text-xs lg:text-sm font-bold mb-6">
+              <ShieldCheck size={16} />
+              <span>{t.hero.tag}</span>
+            </div>
+            <h1 className="text-4xl lg:text-7xl font-extrabold text-navy leading-[1.1] mb-6">
+              {t.hero.title} <span className="text-field-green">{t.hero.titleAccent}</span>
+            </h1>
+            <p className="text-lg lg:text-xl text-slate-600 mb-8 leading-relaxed max-w-2xl">
+              {t.hero.desc}
+            </p>
+            
+            <ul className="space-y-3 lg:space-y-4 mb-10">
+              {t.hero.bullets.map((item, i) => (
+                <li key={i} className="flex items-center gap-3 text-base lg:text-lg font-medium text-slate-700">
+                  <CheckCircle2 className="text-field-green shrink-0" size={22} />
+                  {item}
+                </li>
+              ))}
+            </ul>
+
+            <div className="flex flex-col sm:flex-row gap-4">
+              <a 
+                href={BOOKING_URL} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="bg-navy text-white px-8 py-4 lg:py-5 rounded-xl font-bold text-lg hover:bg-slate-800 transition-all shadow-xl shadow-navy/20 flex items-center justify-center gap-2 group"
+              >
+                {t.hero.ctaPrimary} <ArrowRight className="group-hover:translate-x-1 transition-transform" />
+              </a>
+              <button 
+                onClick={(e: any) => handleGlobalNavClick(e, 'features')}
+                className="bg-white text-navy border-2 border-slate-200 px-8 py-4 lg:py-5 rounded-xl font-bold text-lg hover:border-navy transition-all flex items-center justify-center gap-2"
+              >
+                {t.hero.ctaSecondary}
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="absolute top-0 right-0 w-2/5 h-full hidden lg:block -z-10">
+            <img 
+              src="https://images.unsplash.com/photo-1590231940426-621617a94464?auto=format&fit=crop&q=80&w=1200" 
+              alt="Technology" 
+              className="w-full h-full object-cover rounded-l-[100px]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/40 to-transparent"></div>
+        </div>
+      </section>
+
+      {/* Feature Section (New Consolidated View) */}
+      <FeatureSection lang={lang} />
+
+      {/* Results Section */}
       <section id="results" className="py-20 lg:py-24 bg-white border-t border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -594,26 +541,48 @@ export default function App() {
               <div className="flex items-center gap-4 mb-4 text-field-green"><Zap size={24} /><h4 className="font-bold text-navy text-lg lg:text-xl">{lang === 'en' ? "Instant Engagement" : "Engagement Instantané"}</h4></div>
               <p className="text-slate-600 text-sm leading-relaxed">
                 {lang === 'en' 
-                  ? "Most septic companies lose 60% of their leads because they can't answer while servicing a tank. We ensure you are the first professional they talk to."
-                  : "La plupart des entreprises perdent 60% de leurs leads car elles ne peuvent pas répondre en service. Nous assurons que vous soyez le premier contact."}
+                  ? "Most septic companies lose 60% of their leads because they can't answer while servicing a tank. Our AI chatbots ensure you are the first professional they talk to, 24/7."
+                  : "La plupart des entreprises perdent 60% de leurs leads car elles ne peuvent pas répondre. Nos chatbots IA assurent que vous soyez le premier contact, 24/7."}
               </p>
             </div>
             <div className="bg-slate-50 p-6 lg:p-8 rounded-3xl border border-slate-100">
               <div className="flex items-center gap-4 mb-4 text-navy"><TrendingUp size={24} /><h4 className="font-bold text-navy text-lg lg:text-xl">{lang === 'en' ? "Market Dominance" : "Dominance du Marché"}</h4></div>
               <p className="text-slate-600 text-sm leading-relaxed">
                 {lang === 'en'
-                  ? "We help local owners out-position regional franchises without massive ad budgets."
-                  : "Nous aidons les propriétaires locaux à surclasser les franchises régionales sans budgets publicitaires massifs."}
+                  ? "We help local owners out-position regional franchises with data-driven workflows and real-time lead tracking right from their phones."
+                  : "Nous aidons les propriétaires locaux à surclasser les franchises grâce à des flux de données et un suivi des leads en temps réel sur mobile."}
               </p>
             </div>
           </div>
         </div>
       </section>
 
+      {/* Pricing */}
       <PricingSection lang={lang} />
 
-      <About lang={lang} />
+      {/* About Section */}
+      <section id="about" className="py-20 lg:py-24">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h2 className="text-2xl lg:text-3xl font-extrabold text-navy mb-6">{lang === 'en' ? "Built Specifically for Septic & Well Pros" : "Conçu spécifiquement pour les pros du septique"}</h2>
+            <p className="text-base lg:text-lg text-slate-600 mb-8 leading-relaxed">
+              {lang === 'en' 
+                ? "Most agencies serve dentists and lawyers. We realized the septic industry was being overcharged for generic services that don't fit field-service reality. Our system is built for trucks, tanks, and territory." 
+                : "La plupart des agences servent des dentistes. Nous avons réalisé que l'industrie du septique était surfacturée pour des services génériques inadaptés. Notre système est conçu pour le terrain."}
+            </p>
+            <div className="flex flex-wrap justify-center gap-4 lg:gap-6">
+              <div className="flex items-center gap-2 font-bold text-navy text-sm lg:text-base">
+                <CheckCircle2 className="text-field-green" size={18} /> {lang === 'en' ? "AI-Integrated" : "Intégré IA"}
+              </div>
+              <div className="flex items-center gap-2 font-bold text-navy text-sm lg:text-base">
+                <CheckCircle2 className="text-field-green" size={18} /> {lang === 'en' ? "Mobile-First CRM" : "CRM Mobile"}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
       
+      {/* Final CTA */}
       <section className="py-20 lg:py-24 bg-navy text-white text-center relative z-10">
         <div className="max-w-4xl mx-auto px-4">
           <h2 className="text-3xl lg:text-4xl font-black mb-6">{t.ctaFinal.title}</h2>
