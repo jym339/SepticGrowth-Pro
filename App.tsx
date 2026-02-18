@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Phone, 
@@ -124,7 +123,7 @@ const content = {
     },
     footer: {
       desc: "The only marketing partner dedicated exclusively to helping septic and well water service companies scale through technology.",
-      rights: "© 2026 SepticGrowth Pro. Specialized Lead Systems for Field Service Pros."
+      rights: "© 2026 SepticGrowth AI. Specialized Lead Systems for Field Service Pros."
     },
     ctaFinal: {
       title: "Ready to automate your growth?",
@@ -220,7 +219,7 @@ const content = {
     },
     footer: {
       desc: "Le seul partenaire marketing dédié exclusivement à la croissance technologique des services septiques.",
-      rights: "© 2026 SepticGrowth Pro. Systèmes de leads spécialisés pour les pros du terrain."
+      rights: "© 2026 SepticGrowth AI. Systèmes de leads spécialisés pour les pros du terrain."
     },
     ctaFinal: {
       title: "Prêt à automatiser votre croissance ?",
